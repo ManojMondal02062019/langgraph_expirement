@@ -1,3 +1,7 @@
 langgraph
 langchain-google-genai
 grandalf
+chromadb
+sentence-transformers
+langchain-community
+

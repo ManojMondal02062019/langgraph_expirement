@@ -8,7 +8,7 @@ import json
 def generate_research_assistant_prompt(memory: str = "None", prompt: str = "None") -> str:
     return f"""
     You are an agent to provide only the AWS Service Name and action extracted from user prompt {prompt}.
-    Only return the Service Name and action. The response should be very concise.
+    Only return the Service Name, action, command, required and optional parameters. The response should be very concise.
     The output should be as per this example {json_response_format_response}.
     We don't want markdown in our output
     - Output only described JSON output format compatible with python backend.

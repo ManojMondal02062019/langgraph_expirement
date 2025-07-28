@@ -24,6 +24,9 @@ class State(TypedDict):
 class AWS_Service(BaseModel):
     service_name: str = Field(description="the service name")
     action: str = Field(description="action to be performed")
+    command: str = Field(description="cli command to perform the action")
+    required_parameters: str = Field(description="required parameters to perform the action")
+    optional_parameters: str = Field(description="optional parameters to perform the action")
 
 
 aws_json_schema = {
@@ -39,11 +42,26 @@ aws_json_schema = {
             "type": "string",
             "description": "Action to be performed",
         },
+        "command": {
+            "type": "string",
+            "description": "cli command to perform the action",
+        },
+        "required_parameters": {
+            "type": "string",
+            "description": "Required parameters",
+        },
+        "optional_parameters": {
+            "type": "string",
+            "description": "Optional parameters",
+        }
     },
     "required": ["service_name"],
 }
 
 json_response_format_response = {
     "service_name": "ec2",
-    "action": "start instance"
+    "action": "start instance",
+    "command": "start-instances",
+    "required_parameters": "--instance-ids <instance-id>",
+    "optional_parameters": "Dry Run"
 }
