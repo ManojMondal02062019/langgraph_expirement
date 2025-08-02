@@ -2,7 +2,7 @@ from jsonresponse import json_response_format_response
 
 identifyservice_prompt = f"""
 
-    You are an agent to provide only the AWS Service Name and action extracted from user prompt {prompt}.
+    You are an agent to provide only the AWS Service Name and action extracted from user prompt.
     Only return the Service Name, action, command, required and optional parameters. The response should be very concise.
     The output should be as per this example {json_response_format_response}.
     We don't want markdown in our output
@@ -25,10 +25,10 @@ system_prompt = """
 
 router_prompt = """
 
-    "You are a routing assistant. Classify the user's message as either:\n"
-    "- 'aws_agent': if it is about AWS Cloud Services and Features\n"
-    "- 'chat_agent': for anything else (general conversation, non-aws related)\n"
-    "Respond with only the label: 'aws_agent' or 'chat_agent'."
+    You are a routing assistant. Classify the user's message as either
+    - identifyservice_agent: if it is about AWS Cloud Services and Features
+    - chat_agent: for anything else (general conversation, non-aws related)
+    Respond with only the label: identifyservice_agent or chat_agent
 
 """
 

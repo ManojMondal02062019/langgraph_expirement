@@ -1,7 +1,8 @@
-from llm_models import invoke_llm_chat
+from llm_model import invoke_llm_chat
 import os
 from prompts import summary_prompt
-from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
+from typing import Annotated, List
 
 CHECKPOINT_DIR = "./checkpoints"
 os.makedirs(CHECKPOINT_DIR, exist_ok=True)
@@ -16,11 +17,11 @@ def summarize_conversation(messages: List[BaseMessage]) -> str:
 
 def save_checkpoint(thread_id, state):
     try:
-        if len(state["messages"]) > 8:
-            summarized = summarize_conversation(state["messages"])
-            state["messages"] = [HumanMessage(content=f"Summary of previous conversation: {summarized}")]
-        with open(os.path.join(CHECKPOINT_DIR, f"{thread_id}.json"), "w") as f:
-            json.dump([msg.dict() for msg in state["messages"]], f)
+        if len(state["messages"]):
+            #summarized = summarize_conversation(state["messages"])
+            #state["messages"] = [HumanMessage(content=f"Summary of previous conversation: {summarized}")]
+            with open(os.path.join(CHECKPOINT_DIR, f"{thread_id}.json"), "w") as f:
+                json.dump([msg.dict() for msg in state["messages"]], f)
     except Exception as e:
         print(f"Failed to save checkpoint: {e}")
 
