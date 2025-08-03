@@ -25,7 +25,9 @@ def identifyservice_agent(state: GraphState) -> GraphState:
         elif intent.content == "Params_Collector":
             response_text = "dummy"
         elif intent.content == "Command_Executor":
-            response_text = "dummy"
+            print("IdentifyService: Command Executor: Invoke LLM Model")
+            response_text = invoke_llm_prompts(identifyservice_prompt, user_msg)
+            print(f"IdentifyService : Command Executor: Response ::: {response_text}")
         elif intent.content == "general_question":
             response_text = invoke_llm_chat(user_msg).content
 

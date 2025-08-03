@@ -11,6 +11,18 @@ identifyservice_prompt = f"""
 
     """
 
+commandexecutor_precheck_prompt = f"""
+
+    You are an agent to verify and validate the mandatory parameters, before executing the aws command.
+    Only return the Service Name, action, command, required and optional parameters. The response should be very concise.
+    The output should be as per this example {json_response_format_response}.
+    We don't want markdown in our output
+    - Output only described JSON output format compatible with python backend.
+    - JSON, keys and values require double-quotes
+
+    """
+
+
 system_prompt = """
     
     "You are an AWS Assistant and will help users in executing the aws commands. "
