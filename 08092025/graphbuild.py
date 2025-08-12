@@ -8,6 +8,7 @@ from router_agent import route
 from llm_model import llm, checkpointer
 from typing import Literal
 from langgraph.types import interrupt, Command
+from utils import human_feedback
 
 '''
 # Simulate an LLM output node
@@ -59,6 +60,7 @@ def buildgraph():
     builder.add_node("intent_agent", intent_agent)
     builder.add_node("identifyservice_agent", identifyservice_agent)
     builder.add_node("commandexecute_agent", commandexecute_agent)
+    builder.add_node("human_feedback", human_feedback)
     builder.add_node("route", lambda x: x)
     
     builder.add_conditional_edges("route", route, {
@@ -75,28 +77,29 @@ def buildgraph():
     builder.set_entry_point("route")
     builder.add_edge("chat_agent", END)
     builder.add_edge("intent_agent", "identifyservice_agent")
-    builder.add_edge("identifyservice_agent", END)
-    #builder.add_edge("identifyservice_agent", "commandexecute_agent")
-    #builder.add_edge("commandexecute_agent", END)
+    builder.add_edge("identifyservice_agent", "human_feedback")
+    builder.add_edge("human_feedback", "commandexecute_agent")
+    builder.add_edge("commandexecute_agent", END)
 
     try:
         graph = builder.compile(checkpointer=checkpointer)     
     except Exception as e:
         raise RuntimeError(f"Failed to compile LangGraph: {e}")
 
-    #app_graph = graph.get_graph(xray=True) 
+    app_graph = graph.get_graph(xray=True) 
     #print_graph(app_graph)
     #app_graph.print_ascii()
     #print("Graph Printed")
     return graph
 
 '''
-def buildgraphv2(st_messages, st_placeholder, st_state):
+def buildgraphv2(state, config, prompt, placeholder, shared_state):
 
-    container = st_placeholder
-    st_input = {"input": st_messages}
+    container = st_placeholder 
+    st_input = {"input": st_messages} # user enter a statement
 
     if st_state.get("graph_resume"):
+
         graph.update_state(thread_config, {"input": st_messages})  # Update the graph's state with the new input
         st_input = None  # No new input is passed if resuming the graph
 

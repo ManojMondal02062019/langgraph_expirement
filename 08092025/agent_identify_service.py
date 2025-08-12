@@ -24,14 +24,13 @@ def identifyservice_agent(state: AgentState) -> AgentState:
         json_resp = response_text.content
         json_resp = json_resp.replace("```json", "")
         json_resp = json_resp.replace("```", "")
-        
+        response = f"Please confirm the service and action ? \n\n {json_resp}"
         data_dict = json.loads(json_resp)
         data_dict['intent'] = False
         state["aws_service_attr"] = data_dict
-
         print(f"IdentifyService: AWS Service Attribute : {state["aws_service_attr"]}")
+        print(f"IdentifyService: Returning Data :: {state['messages']} :: and :: {response}")
     except Exception as e:
         #response_text = f"Error processing request: {e}" 
         raise e
-    print(f"IdentifyService: Returning Data :: {state['messages']} :: and :: {data_dict}")
-    return {"messages": state["messages"] + [AIMessage(content=json_resp)]}
+    return {"messages": state["messages"] + [AIMessage(content=response)]}

@@ -6,37 +6,30 @@ from agent_state import AgentState
 from langchain_core.runnables import RunnableConfig
 from graphbuild import buildgraph
 from langchain_core.messages import HumanMessage, AIMessage
-from langgraph.types import StateSnapshot
 
 def generate_uuid() -> str:
     return str(uuid.uuid4())
 
-def run_chat(thread_id):
+def run_chat():
     print("----------------------- S ----------------------------")
-    print(f"----------------------- {thread_id} ----------------------------")
     state = {}
     state["messages"] = []
     try:
         if user_input := st.chat_input("You: "):
-            print(f'Main: User Input 1 : {user_input}')
+            print(f'Main: User Input : {user_input}')
             to_display = f"**User:** {user_input}"
             #  Display all previous messages
             print(f"State Messages : {st.session_state.messages}")
+            for message in st.session_state.messages:
+                st.markdown(message) 
+            st.session_state.messages.append(to_display)
+            st.markdown(to_display)
+            thread_id = generate_uuid()
             config = {
                 "configurable": {
                     "thread_id": thread_id
                 }
             } 
-
-            print(f" Check graph State ::::::::::::::: {buildgraph().get_state(config)}")
-            state_snapshot = buildgraph().get_state(config)
-            tool_output = state_snapshot.interrupts
-            print(f" Check graph State tool_output ::::::::::::::: {tool_output}")
-
-            for message in st.session_state.messages:
-                st.markdown(message) 
-            st.session_state.messages.append(to_display)
-            st.markdown(to_display)
             #config: RunnableConfig = {"configurable": {"thread_id": thread_id}}           
             with st.spinner("Processing..."):   
                 placeholder = st.container()  # Placeholder for dynamically updating agents message
@@ -84,10 +77,6 @@ def run_chat(thread_id):
                                 st.session_state.messages.append(to_display)
                                 st.markdown(to_display)
                                 st.markdown("---")
-                            if "__interrupt__" in event:
-                                print("Graph is in an interrupted state.")
-                            else:
-                                print("Graph is not interrupted.")                                
                     except Exception as e:
                         st.markdown(f"Error during graph invocation: {e}")
                         st.markdown("---")
@@ -114,4 +103,4 @@ if 'graph_resume' not in st.session_state:
     st.session_state.graph_resume = False  # Track if the graph should resume from a previous state
 
 
-run_chat(1234)
+run_chat()
