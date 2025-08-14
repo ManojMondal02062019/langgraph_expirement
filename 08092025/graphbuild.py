@@ -8,7 +8,7 @@ from router_agent import route
 from llm_model import llm, checkpointer
 from typing import Literal
 from langgraph.types import interrupt, Command
-from utils import human_feedback
+from utils import human_approval, approved_node, rejected_node, modify_node
 
 '''
 # Simulate an LLM output node
@@ -37,6 +37,11 @@ def rejected_node(state: AgentState) -> AgentState:
     return state
 '''
 
+# Next steps after approval
+def approved_node(thread_config: str):
+    print("Approved path taken.")
+    buildgraph().invoke(Command(resume="ok"), thread_config)
+
 def print_graph(graph):
         
     # Assuming graph has methods or attributes to access nodes and edges
@@ -60,7 +65,10 @@ def buildgraph():
     builder.add_node("intent_agent", intent_agent)
     builder.add_node("identifyservice_agent", identifyservice_agent)
     builder.add_node("commandexecute_agent", commandexecute_agent)
-    builder.add_node("human_feedback", human_feedback)
+    builder.add_node("human_approval", human_approval)
+    builder.add_node("approved_intent_path", approved_node)
+    builder.add_node("rejected_intent_path", rejected_node)
+    builder.add_node("modify_intent_path", modify_node)
     builder.add_node("route", lambda x: x)
     
     builder.add_conditional_edges("route", route, {
@@ -77,8 +85,10 @@ def buildgraph():
     builder.set_entry_point("route")
     builder.add_edge("chat_agent", END)
     builder.add_edge("intent_agent", "identifyservice_agent")
-    builder.add_edge("identifyservice_agent", "human_feedback")
-    builder.add_edge("human_feedback", "commandexecute_agent")
+    builder.add_edge("identifyservice_agent", "human_approval")
+    builder.add_edge("approved_intent_path", "commandexecute_agent")
+    builder.add_edge("rejected_intent_path", "identifyservice_agent")
+    builder.add_edge("modify_intent_path", "identifyservice_agent")
     builder.add_edge("commandexecute_agent", END)
 
     try:
@@ -86,13 +96,15 @@ def buildgraph():
     except Exception as e:
         raise RuntimeError(f"Failed to compile LangGraph: {e}")
 
-    app_graph = graph.get_graph(xray=True) 
-    #print_graph(app_graph)
-    #app_graph.print_ascii()
-    #print("Graph Printed")
     return graph
 
 '''
+
+    app_graph = graph.get_graph(xray=True) 
+    print_graph(app_graph)
+    app_graph.print_ascii()
+    #print("Graph Printed")
+
 def buildgraphv2(state, config, prompt, placeholder, shared_state):
 
     container = st_placeholder 

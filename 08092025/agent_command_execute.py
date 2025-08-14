@@ -8,10 +8,7 @@ def commandexecute_agent(state: AgentState) -> AgentState:
     user_msg = state["messages"][-1].content
     response_text = "Sorry, I couldn't process your request."
 
-    try:
-        response_text = llm.invoke(identify_service_prompt,user_msg)
-        print(f"CommandExecute: Response : {response_text}")
-    except Exception as e:
-        response_text = f"Error processing request: {e}" 
+    response_text = llm.invoke(identify_service_prompt,user_msg)
+    print(f"CommandExecute: Response : {response_text}")
     
     return {"messages": state["messages"] + [AIMessage(content=response_text.content)]}

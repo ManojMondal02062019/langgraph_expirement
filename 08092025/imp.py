@@ -5,3 +5,6 @@
 
 #following this example -> 
 #https://github.com/ivrschool/langchain/blob/main/Langgraph/hitl_design_patterns/hitl_multi_interrupt.ipynb
+
+#Interrupt - flight, hotel booking
+#https://langchain-ai.github.io/langgraph/tutorials/customer-support/customer-support/#assistants
