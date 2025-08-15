@@ -9,7 +9,7 @@ gem_model_name="gemini-pro"
 
 llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash")
 
-checkpointer = InMemorySaver()
+memory = InMemorySaver()
 
 agent = create_react_agent(
     model=gem_model_name,

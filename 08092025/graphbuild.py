@@ -5,37 +5,18 @@ from agent_identify_service import identifyservice_agent
 from agent_command_execute import commandexecute_agent
 from agent_intent import intent_agent
 from router_agent import route
-from llm_model import llm, checkpointer
+from llm_model import llm, memory
 from typing import Literal
 from langgraph.types import interrupt, Command
 from utils import human_approval, approved_node, rejected_node, modify_node
 
-'''
-# Simulate an LLM output node
-def generate_llm_output(state: AgentState) -> AgentState:
-    return {"llm_output": "This is the generated output."}
-
-def human_approval(state: AgentState) -> Command[Literal["approved_path", "rejected_path"]]:
-    decision = interrupt({
-        "question": "Do you approve the following output?",
-        "llm_output": state["llm_output"]
-    })
-
-    if decision == "approve":
-        return Command(goto="approved_path", update={"decision": "approved"})
-    else:
-        return Command(goto="rejected_path", update={"decision": "rejected"})
-
-# Next steps after approval
-def approved_node(state: AgentState) -> AgentState:
-    print("Approved path taken.")
-    return state
-
-# Alternative path after rejection
-def rejected_node(state: AgentState) -> AgentState:
-    print("Rejected path taken.")
-    return state
-'''
+def clear_update_graph_state(config):
+    # Get the checkpointed state
+    checkpoint = buildgraph().get_state(config)
+    modified_state = checkpoint.values
+    modified_state["final_output"] = ""
+    buildgraph().update_state(config, modified_state)
+    print(f"****** clear_update_graph_state Completed")
 
 # Next steps after approval
 def approved_node(thread_config: str):
@@ -92,7 +73,7 @@ def buildgraph():
     builder.add_edge("commandexecute_agent", END)
 
     try:
-        graph = builder.compile(checkpointer=checkpointer)     
+        graph = builder.compile(checkpointer=memory)     
     except Exception as e:
         raise RuntimeError(f"Failed to compile LangGraph: {e}")
 

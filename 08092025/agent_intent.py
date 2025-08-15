@@ -14,9 +14,14 @@ def intent_agent(state: AgentState) -> AgentState:
             ("system", intent_prompt),
             ("human", user_msg),
         ]
-        response_text = llm.invoke(messages)
-        print(f"Intent Agent: Response : {response_text}")
+        response_text = llm.invoke(messages).content
     except Exception as e:
         response_text = f"Error processing request: {e}"
 
-    return {"messages": state["messages"] + [AIMessage(content=response_text.content)]}
+    current_messages = []
+    current_messages.append(AIMessage(content=response_text))
+    print(f"Intent_agent: Response: {response_text}")
+
+    return {
+        "messages": current_messages,
+    }    

@@ -5,9 +5,10 @@ from aws_service_attributes import AWSServiceAttributes
 from typing_extensions import Annotated
 from langchain_core.tools import tool
 from langgraph.prebuilt import InjectedState
+from langchain_core.runnables.config import RunnableConfig
 
 
-def human_feedback(state: AgentState) -> AgentState:
+def human_feedback(state: AgentState, config: RunnableConfig) -> AgentState:
     # highlight-next-line
     print("---human_feedback block---")
     print(f" AGENT STATE ===== {state}")
@@ -17,7 +18,7 @@ def human_feedback(state: AgentState) -> AgentState:
     return state
 
 # Human approval node
-def human_approval(state: AgentState) -> Command[Literal["approved_intent_path", "rejected_intent_path", "modify_intent_path"]]:
+def human_approval(state: AgentState, config: RunnableConfig) -> Command[Literal["approved_intent_path", "rejected_intent_path", "modify_intent_path"]]:
 
     # Generate the human approval message
     approval_message = f"Kindly confirm to proceed OR you can modify your query ?"
@@ -30,24 +31,28 @@ def human_approval(state: AgentState) -> Command[Literal["approved_intent_path",
     #})
 
     if decision == "approve":
+        print(f" DECISION APPROVED .... {decision}")
         return Command(goto="approved_intent_path", update={"decision": "approved"})
     elif decision == "reject":
+        print(f" DECISION REJECTED .... {decision}")
         return Command(goto="rejected_intent_path", update={"decision": "rejected"})
     else:
+        print(f" DECISION MODIFY .... {decision}")
         return Command(goto="modify_intent_path", update={"decision": "modify"})
 
 
 # Next steps after approval
-def approved_node(state: AgentState) -> AgentState:
-    print("Approved path taken.")
+def approved_node(state: AgentState, config: RunnableConfig) -> AgentState:
+    print("Approved path taken......1")
+
     return state
 
 # Alternative path after rejection
-def rejected_node(state: AgentState) -> AgentState:
-    print("Rejected path taken.")
+def rejected_node(state: AgentState, config: RunnableConfig) -> AgentState:
+    print("Rejected path taken...2")
     return state
 
 # Alternative path after rejection
-def modify_node(state: AgentState) -> AgentState:
+def modify_node(state: AgentState, config: RunnableConfig) -> AgentState:
     print("Rejected path taken.")
     return state
