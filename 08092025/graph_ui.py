@@ -4,7 +4,7 @@ import uuid
 from archive import load_checkpoint, save_checkpoint
 from agent_state import  AgentState         
 from langchain_core.runnables import RunnableConfig
-from graphbuild import buildgraph, approved_node, clear_update_graph_state, resume_graph
+from graphbuild import buildgraph, approved_node, clear_update_graph_state, resume_graph, reject_graph
 from langchain_core.messages import HumanMessage, AIMessage
 from langgraph.types import StateSnapshot
 
@@ -49,13 +49,17 @@ def run_chat(thread_id):
 
         chkInterruptMessage=checkInterrupts(config)
         if (len(chkInterruptMessage) > 0):
-            if ("ok" in user_input.strip().lower()):
+            if ("approve" in user_input.strip().lower()):
                 print("OK. From user")
                 #Clear the state graph
                 resume_graph(config)
                 #approved_node(config)
-            else:
+            elif ("reject" in user_input.strip().lower()):
+                reject_graph(config)
                 print("Not OK. From user")
+            elif ("modify" in user_input.strip().lower()):
+                print("Not OK. From user")
+            else:
                 st.markdown(chkInterruptMessage)
         else:
             with st.spinner("Processing..."):   

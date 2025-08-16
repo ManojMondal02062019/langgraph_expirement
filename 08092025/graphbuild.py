@@ -8,12 +8,19 @@ from router_agent import route
 from llm_model import llm, memory
 from typing import Literal
 from langgraph.types import interrupt, Command
-from utils import human_approval, approved_node, rejected_node, modify_node
 from langchain_core.runnables import RunnableConfig
 
 def resume_graph(config: RunnableConfig):
     final_result = buildgraph().invoke(Command(resume="approve"), config=config)
-    print(final_result)  
+    print("Resume Graph")  
+
+def reject_graph(config: RunnableConfig):
+    final_result = buildgraph().invoke(None, config=config)
+    print("Start again")  
+
+def modify_graph(config: RunnableConfig):
+    final_result = buildgraph().invoke(Command(resume="modify"), config=config)
+    print("Start again")  
 
 def clear_update_graph_state(config):
     # Get the checkpointed state
@@ -52,9 +59,9 @@ def buildgraph():
     builder.add_node("identifyservice_agent", identifyservice_agent)
     builder.add_node("commandexecute_agent", commandexecute_agent)
     builder.add_node("human_approval", human_approval)
-    builder.add_node("approved_intent_path", approved_node)
-    builder.add_node("rejected_intent_path", rejected_node)
-    builder.add_node("modify_intent_path", modify_node)
+    #builder.add_node("approved_intent_path", approved_node)
+    #builder.add_node("rejected_intent_path", rejected_node)
+    #builder.add_node("modify_intent_path", modify_node)
     builder.add_node("route", lambda x: x)
     
     # commented on 08162025
@@ -72,15 +79,19 @@ def buildgraph():
     builder.add_edge("chat_agent", END)
     builder.add_edge("intent_agent", "identifyservice_agent")
     builder.add_edge("identifyservice_agent", "human_approval")
-    builder.add_edge("approved_intent_path", "commandexecute_agent")
-    builder.add_edge("rejected_intent_path", "identifyservice_agent")
-    builder.add_edge("modify_intent_path", "identifyservice_agent")
+    builder.add_edge("human_approval", "commandexecute_agent")
+    builder.add_edge("human_approval", "identifyservice_agent")
     builder.add_edge("commandexecute_agent", END)
 
     try:
         graph = builder.compile(checkpointer=memory)     
     except Exception as e:
         raise RuntimeError(f"Failed to compile LangGraph: {e}")
+
+    #app_graph = graph.get_graph(xray=True) 
+    #print_graph(app_graph)
+    #app_graph.print_ascii()
+
 
     return graph
 
@@ -90,40 +101,65 @@ def buildgraph():
     print_graph(app_graph)
     app_graph.print_ascii()
     #print("Graph Printed")
-
-def buildgraphv2(state, config, prompt, placeholder, shared_state):
-
-    container = st_placeholder 
-    st_input = {"input": st_messages} # user enter a statement
-
-    if st_state.get("graph_resume"):
-
-        graph.update_state(thread_config, {"input": st_messages})  # Update the graph's state with the new input
-        st_input = None  # No new input is passed if resuming the graph
-
-    async for event in graph.astream_events(st_input, thread_config, version="v2"):
-        name = event["name"]
-
-        if name == "on_conditional_check":
-            container.info("The length of the word is " + str(event["data"]) + " letters long")
-
-        # the graph issued an interrupt that the user needs to update/handle
-        if name == "on_waiting_user_resp":
-            # Display the issue/error and prompt the user for a new response or update
-            container.error("The length of the word is " + str(event["data"]) + " letters long")
-
-        if name == "on_complete_graph":
-            with container:
-                st.balloons()
-                data = event["data"]
-            # Return success message with processed data
-            return {"op": "on_new_graph_msg", "msg": f"Nice, the word is {data['input']}, with length {data['len']}"}
-
-    state = graph.get_state(thread_config)
-
-    # If there are any pending tasks and interruptions, handle them
-    if len(state.tasks) != 0 and len(state.next) != 0:
-        issue = state.tasks[0].interrupts[0].value  # Retrieve the first interrupt value from the task
-        # Return an operation indicating the graph is waiting for the user to respond
-        return {"op": "on_waiting_user_resp", "msg": issue}
 '''
+
+# Human approval node
+def human_approval(state: AgentState, config: RunnableConfig) -> Command[Literal["commandexecute_agent", "identifyservice_agent"]]:
+
+    # Generate the human approval message
+    approval_message = f"Kindly confirm to proceed OR you can modify your query (A=Approve, R=Reject and begin from start, M=Modify the intent?"
+
+    # Pause the graph and surface the approval message
+    decision = interrupt({"message": approval_message})    
+    #decision = interrupt({
+    #    "question": "Do you approve, reject the following output? OR you want to modify the request",
+    #    "llm_output": state["llm_output"]
+    #})
+
+    if decision == "approve" or decision == "A":
+        print(f" DECISION APPROVED .... {decision}")
+        return Command(goto="commandexecute_agent", update={"decision": "approved"})
+    elif decision == "reject" or decision == "R":
+        print(f" DECISION REJECTED .... {decision}")
+        pass
+    else:
+        print(f" DECISION MODIFY .... {decision}")
+        return Command(goto="identifyservice_agent", update={"decision": "modify"})
+
+# Human approval node
+def human_approval1(state: AgentState, config: RunnableConfig) -> Command[Literal["commandexecute_agent", "identifyservice_agent"]]:
+
+    # Generate the human approval message
+    approval_message = f"Kindly confirm to proceed OR you can modify your query ?"
+
+    # Pause the graph and surface the approval message
+    decision = interrupt({"message": approval_message})    
+    #decision = interrupt({
+    #    "question": "Do you approve, reject the following output? OR you want to modify the request",
+    #    "llm_output": state["llm_output"]
+    #})
+
+    if decision == "approve":
+        print(f" DECISION APPROVED .... {decision}")
+        return Command(goto="commandexecute_agent")
+    elif decision == "reject":
+        print(f" DECISION REJECTED .... {decision}")
+        return Command(goto="rejected_intent_path", update={"decision": "rejected"})
+    else:
+        print(f" DECISION MODIFY .... {decision}")
+        return Command(goto="modify_intent_path", update={"decision": "modify"})
+
+# Next steps after approval
+def approved_node(state: AgentState, config: RunnableConfig) -> AgentState:
+    print("Approved path taken......11111")
+    return state
+
+# Alternative path after rejection
+def rejected_node(state: AgentState, config: RunnableConfig) -> AgentState:
+    print("Rejected path taken...22222")
+    return state
+
+# Alternative path after rejection
+def modify_node(state: AgentState, config: RunnableConfig) -> AgentState:
+    print("Rejected path taken.....33333")
+    return state
