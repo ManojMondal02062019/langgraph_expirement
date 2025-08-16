@@ -36,7 +36,7 @@ def identifyservice_agent(state: AgentState, config: RunnableConfig) -> AgentSta
     data_dict['intent'] = False
     state["aws_service_attr"] = data_dict
 
-    current_messages = []
+    current_messages = []  
     current_messages.append(AIMessage(content=response))
     print(f"---E--- IdentifyService: State Message: {current_messages}")
 

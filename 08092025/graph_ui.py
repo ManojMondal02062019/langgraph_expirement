@@ -4,7 +4,7 @@ import uuid
 from archive import load_checkpoint, save_checkpoint
 from agent_state import  AgentState         
 from langchain_core.runnables import RunnableConfig
-from graphbuild import buildgraph, approved_node, clear_update_graph_state
+from graphbuild import buildgraph, approved_node, clear_update_graph_state, resume_graph
 from langchain_core.messages import HumanMessage, AIMessage
 from langgraph.types import StateSnapshot
 
@@ -51,7 +51,9 @@ def run_chat(thread_id):
         if (len(chkInterruptMessage) > 0):
             if ("ok" in user_input.strip().lower()):
                 print("OK. From user")
-                approved_node(config)
+                #Clear the state graph
+                resume_graph(config)
+                #approved_node(config)
             else:
                 print("Not OK. From user")
                 st.markdown(chkInterruptMessage)
@@ -84,11 +86,13 @@ def run_chat(thread_id):
                             state["messages"].append(AIMessage(content=to_display))
                             st.session_state.messages.append(to_display)
                             st.markdown(to_display)
-                    clear_update_graph_state(config)
                     chkInterruptMessage = checkInterrupts(config)
                     if (len(chkInterruptMessage) > 0):
                         to_display = "\n" + chkInterruptMessage
                         st.markdown(to_display)
+                    else:
+                        clear_update_graph_state(config)
+
     print("----------------------- E ----------------------------")
 
 st.title("AI AWS Assistant")

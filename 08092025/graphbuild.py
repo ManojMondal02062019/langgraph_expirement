@@ -9,6 +9,11 @@ from llm_model import llm, memory
 from typing import Literal
 from langgraph.types import interrupt, Command
 from utils import human_approval, approved_node, rejected_node, modify_node
+from langchain_core.runnables import RunnableConfig
+
+def resume_graph(config: RunnableConfig):
+    final_result = buildgraph().invoke(Command(resume="approve"), config=config)
+    print(final_result)  
 
 def clear_update_graph_state(config):
     # Get the checkpointed state
@@ -52,17 +57,17 @@ def buildgraph():
     builder.add_node("modify_intent_path", modify_node)
     builder.add_node("route", lambda x: x)
     
+    # commented on 08162025
     builder.add_conditional_edges("route", route, {
         "chat_agent": "chat_agent",
         "intent_agent": "intent_agent"
     })
 
-    #builder.add_conditional_edges("tool", should_continue, {
-    #    "continue": "agent",
-    #    "end": END,
-    #    "call_tool": "tool"
-    #})
-
+    #builder.add_conditional_edges(
+    #    "decider",
+    #    lambda s: s["query"],         # returns "search" or "direct"
+    #    {"search": "search", "direct": "answer"}
+    #)
     builder.set_entry_point("route")
     builder.add_edge("chat_agent", END)
     builder.add_edge("intent_agent", "identifyservice_agent")
