@@ -38,12 +38,13 @@ def identifyservice_agent(state: AgentState, config: RunnableConfig) -> AgentSta
 
     current_messages = []  
     current_messages.append(AIMessage(content=response))
-    print(f"---E--- IdentifyService: State Message: {current_messages}")
+    print(f"---E--- IdentifyService: State Message : {current_messages}")
 
     return {
         "messages": current_messages,
         "aws_service_attr": data_dict,
         "final_output": data_dict,
-        "llm_output": "identifyservice_agent"
+        "llm_output": "identifyservice_agent",
+        "decision_option" : ""
     }
     

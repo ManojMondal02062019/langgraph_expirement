@@ -16,4 +16,7 @@ class AgentState(TypedDict):
     thread_id: str
     aws_service_attr: Optional[AWSServiceAttributes]
     final_output: Optional[str]
+    resume_status: str
+    decision_message: str
+    decision_option: str    
     #aws_service_values: Dict[str, str]

@@ -4,9 +4,10 @@ import uuid
 from archive import load_checkpoint, save_checkpoint
 from agent_state import  AgentState         
 from langchain_core.runnables import RunnableConfig
-from graphbuild import buildgraph, approved_node, clear_update_graph_state, resume_graph, reject_graph
+from graphbuild import buildgraph
 from langchain_core.messages import HumanMessage, AIMessage
 from langgraph.types import StateSnapshot
+from langgraph.types import Command
 
 thread_id = None
 
@@ -14,11 +15,20 @@ def generate_uuid() -> str:
     return str(uuid.uuid4())
 
 def checkInterrupts(config):
+    print("Inside check Interrupt")
     state_snapshot = buildgraph().get_state(config)
+    print(f"Inside state_snapshot ::: {state_snapshot}")
     tool_output = state_snapshot.interrupts        
+    print(f"Inside tool output ::: {tool_output}")
     if len(tool_output) > 0:
-        return (tool_output[0].value).get("message")
+        print("Inside len tool_output")
+        print(f"Insidetool_output type :::: {type(tool_output)}")
+        print(f"Insidetool_output type 0 :::: {type(tool_output[0])}")
+        print(f"Insidetool_output type 1 :::: {tool_output[0].value}")
+        return (tool_output[0].value).get("text_to_review")
+        #return (tool_output[0].value)
     else:
+        print("Inside else block")
         return ""
 
 def run_chat(thread_id):
@@ -48,19 +58,14 @@ def run_chat(thread_id):
             quit()
 
         chkInterruptMessage=checkInterrupts(config)
+        print(f"InterruptMessage :  {chkInterruptMessage}")
+        approved_values = ["approve","modify","rejected"]
         if (len(chkInterruptMessage) > 0):
-            if ("approve" in user_input.strip().lower()):
-                print("OK. From user")
-                #Clear the state graph
-                resume_graph(config)
-                #approved_node(config)
-            elif ("reject" in user_input.strip().lower()):
-                reject_graph(config)
-                print("Not OK. From user")
-            elif ("modify" in user_input.strip().lower()):
-                print("Not OK. From user")
-            else:
-                st.markdown(chkInterruptMessage)
+            print("\n Resuming with human input...")
+            if any(value.lower() in user_input.lower() for value in approved_values):
+                final_result = buildgraph().invoke(Command(resume=user_input), config=config)
+                print(f" Final result: {final_result}")        
+                st.markdown(f"**Agent:** {final_result["final_output"]}")    
         else:
             with st.spinner("Processing..."):   
                 if user_input.lower().__contains__("old id"):
@@ -82,8 +87,17 @@ def run_chat(thread_id):
                 else:
                     state["messages"].append(HumanMessage(content=user_input))
                     for event in buildgraph().stream(state, config, stream_mode="values"):
+
+                        print("Graph paused! Here's what happened:")
+                        print(f"Current state: {event}")
+
+                        print("*******************************************************************")
                         response = buildgraph().get_state(config)
+                        print(f"Current graph state: {response.values}")
+                        print(f"Next node to execute: {response.next}")
                         print(f" RESPONSE -> {response}")
+                        print("*******************************************************************")
+
                         final_output = response.values.get("final_output", "")
                         if len(final_output) > 0:
                             to_display = f"**Agent:** {final_output}"
@@ -92,10 +106,11 @@ def run_chat(thread_id):
                             st.markdown(to_display)
                     chkInterruptMessage = checkInterrupts(config)
                     if (len(chkInterruptMessage) > 0):
-                        to_display = "\n" + chkInterruptMessage
+                        to_display = chkInterruptMessage
                         st.markdown(to_display)
                     else:
-                        clear_update_graph_state(config)
+                        #clear_update_graph_state(config)
+                        print("Nothing")
 
     print("----------------------- E ----------------------------")
 

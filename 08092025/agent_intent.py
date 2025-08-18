@@ -24,4 +24,5 @@ def intent_agent(state: AgentState) -> AgentState:
 
     return {
         "messages": current_messages,
+        "final_output": ""
     }    

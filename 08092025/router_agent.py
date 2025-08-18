@@ -9,6 +9,6 @@ def route(state: AgentState) -> str:
     route_decision = classification.content.strip().lower()
     if route_decision not in ["intent_agent", "chat_agent"]:
         route_decision = "chat_agent"
-    
+    state["final_output"] = ""
     print(f"RouterAgent: Route Decision {route_decision}")
     return route_decision
