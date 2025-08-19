@@ -7,6 +7,7 @@ from langchain_core.callbacks import adispatch_custom_event
 from langgraph.types import interrupt, Command
 from aws_service_attributes import AWSServiceAttributes
 import json
+from utils import cleanJson
 from langchain_core.messages.utils import filter_messages
 
 #graph.update_state(config, {"name": "LangGraph (library)"})
@@ -20,7 +21,7 @@ def identifyservice_agent(state: AgentState, config: RunnableConfig) -> AgentSta
     if (total_messages > 0):
         last_user_msg = (human_messages[total_messages-1]).content
 
-    print(f"---S---IdentifyService: User Message: {last_user_msg}")
+    #print(f"---S---IdentifyService: User Message: {last_user_msg}")
     response_text = "Sorry, I couldn't process your request."
 
     messages = [
@@ -28,17 +29,17 @@ def identifyservice_agent(state: AgentState, config: RunnableConfig) -> AgentSta
         ("human", last_user_msg),
     ]        
     response_text = llm.invoke(messages)
-    json_resp = response_text.content
-    json_resp = json_resp.replace("```json", "")
-    json_resp = json_resp.replace("```", "")
-    response = json_resp
-    data_dict = json.loads(json_resp)
+    #json_resp = response_text.content
+    #json_resp = json_resp.replace("```json", "")
+    #json_resp = json_resp.replace("```", "")
+    response = cleanJson(response_text.content)
+    data_dict = json.loads(response)
     data_dict['intent'] = False
     state["aws_service_attr"] = data_dict
 
     current_messages = []  
     current_messages.append(AIMessage(content=response))
-    print(f"---E--- IdentifyService: State Message : {current_messages}")
+    #print(f"---E--- IdentifyService: State Message : {current_messages}")
 
     return {
         "messages": current_messages,

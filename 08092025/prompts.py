@@ -1,4 +1,4 @@
-from jsonresponse import json_response_format_response
+from jsonresponse import json_response_format_response, json_response_parameter_response, example_1, example_2, example_3, json_final_response_pre_command
 
 intent_prompt = """
     You are an Assistant in identifying the intent of the user request. 
@@ -27,8 +27,9 @@ identify_service_prompt = f"""
     """
 
 identify_service_prompt_1 = f"""
-    You are an AWS cloud agent which uses website https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/index.html
+    You are an AWS cloud agent which uses website https://docs.aws.amazon.com/cli/latest/reference/#available-services.
     to understand the user input and extract the AWS Service Name and actions associated with it. 
+    NOTE - Do not include response from SDK nor from REST API nor from boto3. ONLY refer to cli documentation.
     You are required to 
     - understand the user message and extract the AWS service name.
     - understand the command or action from the user message and find the available methods that can be used to run the action 
@@ -64,3 +65,34 @@ summary_prompt = """
     Summarize chat from history
 
 """    
+
+command_pre_service_prompt = f"""
+        You are an AWS assistant and before proceeding further, please ensure that required_parameters mentioned in this variable ## 
+        are provided by the user.
+        Also, kindly ensure that the values provided are validating the format provided.
+        User can provide the optional_parameters but it is not mandatory.
+        Kindly return the required_parameters if values are found in conversation history. Also return the parameters whose values 
+        are not successfully validated or have invalid format.
+        The response should be very concise and follow the below points while generating the response
+        - Strictly adhere to the this format as response. {json_final_response_pre_command}
+        - JSON, keys and values require double-quotes
+        - Do not wrap the json codes in JSON markers
+
+        Examples: the same response format shall be produced for all required parameters and for optional parameters if provided
+        1. For a valid value, the response should be like this = {example_1}
+
+        2. For a invalid instance-ids value, the response should be like this = {example_2}
+
+        3. If instance-ids value does not exists, the response should be like this = {example_3}
+
+    """
+
+command_join_validation_error_prompt = f"""
+    Write a concise summary of the following ##.
+    The response should be very concise and return the required parameters (as comma seperated).
+"""
+
+command_join_validation_error_prompt_worked_1 = f"""
+    Write a concise summary from the following message - ##.
+    The response should be very concise and ONLY return the parameters (as comma seperated).
+"""

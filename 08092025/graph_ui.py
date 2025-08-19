@@ -19,17 +19,10 @@ def checkInterrupts(config):
     state_snapshot = buildgraph().get_state(config)
     print(f"Inside state_snapshot ::: {state_snapshot}")
     tool_output = state_snapshot.interrupts        
-    print(f"Inside tool output ::: {tool_output}")
     if len(tool_output) > 0:
-        print("Inside len tool_output")
-        print(f"Insidetool_output type :::: {type(tool_output)}")
-        print(f"Insidetool_output type 0 :::: {type(tool_output[0])}")
-        print(f"Insidetool_output type 1 :::: {tool_output[0].value}")
-        return (tool_output[0].value).get("text_to_review")
-        #return (tool_output[0].value)
+        return (tool_output[0].value).get("text_to_review"), state_snapshot.next
     else:
-        print("Inside else block")
-        return ""
+        return "",""
 
 def run_chat(thread_id):
     print(f"----------------------- S ----------------------------")
@@ -57,14 +50,20 @@ def run_chat(thread_id):
             st.markdown("---")
             quit()
 
-        chkInterruptMessage=checkInterrupts(config)
+        chkInterruptMessage, next_state = checkInterrupts(config)
         print(f"InterruptMessage :  {chkInterruptMessage}")
+        print(f"Next_State :  {next_state}")
         approved_values = ["approve","modify","rejected"]
         if (len(chkInterruptMessage) > 0):
-            print("\n Resuming with human input...")
             if any(value.lower() in user_input.lower() for value in approved_values):
+                print("Human Approval")
                 final_result = buildgraph().invoke(Command(resume=user_input), config=config)
-                print(f" Final result: {final_result}")        
+                print(f"Approval Final result: {final_result}")        
+                st.markdown(f"**Agent:** {final_result["final_output"]}")    
+            elif "commandexecute_agent" in next_state:
+                print("Parameters enries")
+                final_result = buildgraph().invoke(Command(resume=user_input), config=config)
+                print(f"Command Final result: {final_result}")        
                 st.markdown(f"**Agent:** {final_result["final_output"]}")    
         else:
             with st.spinner("Processing..."):   
@@ -88,13 +87,12 @@ def run_chat(thread_id):
                     state["messages"].append(HumanMessage(content=user_input))
                     for event in buildgraph().stream(state, config, stream_mode="values"):
 
-                        print("Graph paused! Here's what happened:")
-                        print(f"Current state: {event}")
+                        print(f"Event response : {event}")
 
                         print("*******************************************************************")
                         response = buildgraph().get_state(config)
-                        print(f"Current graph state: {response.values}")
-                        print(f"Next node to execute: {response.next}")
+                        #print(f"Current graph state: {response.values}")
+                        #print(f"Next node to execute: {response.next}")
                         print(f" RESPONSE -> {response}")
                         print("*******************************************************************")
 
@@ -104,7 +102,7 @@ def run_chat(thread_id):
                             state["messages"].append(AIMessage(content=to_display))
                             st.session_state.messages.append(to_display)
                             st.markdown(to_display)
-                    chkInterruptMessage = checkInterrupts(config)
+                    chkInterruptMessage, next_state = checkInterrupts(config)
                     if (len(chkInterruptMessage) > 0):
                         to_display = chkInterruptMessage
                         st.markdown(to_display)

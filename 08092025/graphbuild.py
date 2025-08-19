@@ -33,6 +33,7 @@ def buildgraph():
     builder.add_node("identifyservice_agent", identifyservice_agent)
     builder.add_node("commandexecute_agent", commandexecute_agent)
     builder.add_node("human_review_node", human_node)
+    #builder.add_node("human_ask_parameter", human_ask_node)
     builder.add_node("route", lambda x: x)
 
     
@@ -46,6 +47,7 @@ def buildgraph():
     builder.add_edge("chat_agent", END)
     builder.add_edge("intent_agent", "identifyservice_agent")
     builder.add_edge("identifyservice_agent", "human_review_node")
+    #builder.add_edge("commandexecute_agent", "human_ask_parameter")
 
     # Conditional routing based on human review
     #builder.add_conditional_edges(
@@ -86,19 +88,44 @@ def human_node_working(state: AgentState):
     }
 
 def human_node(state: AgentState) -> Command[Literal["commandexecute_agent", "identifyservice_agent"]]:
-    print(f"Node started with state: {state}")
+    print(f"Human approval node, State : {state}")
+    # Present current state to human and pause execution
+    value = interrupt({
+        "text_to_review": "Please review the service and corresponding actions. Use Approve, Edit, Modify keywords to provide your feedback"
+    })
+    # When resumed, this will contain the human's input
+    if value.lower() == "approve":
+        print(f"Human approval node - Approve")
+        #return Command(goto="commandexecute_agent", update={"final_output": "approved"})
+        return Command(goto="commandexecute_agent")
+    elif value.lower() == "modify":
+        print(f"Human approval node - Modified")
+        return Command(goto="identifyservice_agent")    
+    else:
+        print(f"Human approval node - Rejected")
+        return Command(goto=END, update={"final_output": "Thankyou. You can again start a new search"})
+
+def reviser_node(state: AgentState) -> AgentState:
+    # ... logic to revise code based on feedback ...
+    state.updated_code = state.original_code.replace("World", "LangGraph") # Example revision
+    state.total_iterations += 1
+    return state
+
+def human_ask_node(state: AgentState) -> Command[Literal["commandexecute_agent"]]:
+    print(f"Human Ask Node, state: {state}")
     # Present current state to human and pause execution
     value = interrupt({
         "text_to_review": "Please review the service and corresponding actions. Use Approve, Edit, Modify keywords to provide your feedback"
     })
     print(f"Received human input----------------------- {value}")
     # When resumed, this will contain the human's input
-    if value == "approve":
+    if value.lower() == "approve":
         print(f"Received human input----------------------- Approve")
-        return Command(goto="commandexecute_agent", update={"final_output": "approved"})
-    elif value == "modify":
+        #return Command(goto="commandexecute_agent", update={"final_output": "approved"})
+        return Command(goto="commandexecute_agent")
+    elif value.lower() == "modify":
         print(f"Received human input----------------------- Modified")
-        return Command(goto="identifyservice_agent", update={"final_output": "modify"})    
+        return Command(goto="identifyservice_agent")    
     else:
         print(f"Received human input----------------------- Rejected")
         return Command(goto=END, update={"final_output": "Thankyou. You can again start a new search"})
