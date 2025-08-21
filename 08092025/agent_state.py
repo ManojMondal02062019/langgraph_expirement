@@ -19,4 +19,5 @@ class AgentState(TypedDict):
     resume_status: str
     decision_message: str
     decision_option: str    
+    approved: bool
     #aws_service_values: Dict[str, str]

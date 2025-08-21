@@ -23,12 +23,29 @@ def checkInterrupts(config):
         return (tool_output[0].value).get("text_to_review"), state_snapshot.next
     else:
         return "",""
+    
+def continueHumanLoop(config, user_input):
+    all_field_value_exists = True
+    #while all_field_value_exists:
+    print("Parameters entries Invoke")
+    final_result = buildgraph().invoke(Command(resume=user_input), config=config)
+    user_input = None
+    print("Parameters entries checkInterrupts")
+    chkInterruptMessage2, next_state2 = checkInterrupts(config)
+    if (len(chkInterruptMessage2) > 0):
+        st.markdown(f"**77_Agent:** {chkInterruptMessage2}")
+        st.session_state.messages.append(f"**78_Agent:** {chkInterruptMessage2}")
+        print("Still mandatory fields missing***********")
+    else:
+        all_field_value_exists = False
+        print("Exiting as all mandatory fields have values***********")
 
 def run_chat(thread_id):
     print(f"----------------------- S ----------------------------")
     state = {}
     state["messages"] = []
-    if user_input := st.chat_input("You: "):
+    if user_input := st.chat_input("You: ", key="my_unique_chat_input_1"):
+        state["messages"].append(HumanMessage(content=user_input))
         print(f'*** Main: User Input: {user_input}')
         to_display = f"**User:** {user_input}"
         st.session_state.messages.append(to_display)
@@ -50,21 +67,28 @@ def run_chat(thread_id):
             st.markdown("---")
             quit()
 
+        print("Line 69")
         chkInterruptMessage, next_state = checkInterrupts(config)
         print(f"InterruptMessage :  {chkInterruptMessage}")
         print(f"Next_State :  {next_state}")
         approved_values = ["approve","modify","rejected"]
         if (len(chkInterruptMessage) > 0):
+            print(f"1 user_input :::::::::::::::::::::::::: {user_input}")
             if any(value.lower() in user_input.lower() for value in approved_values):
-                print("Human Approval")
+                print("Check Human Approval")
                 final_result = buildgraph().invoke(Command(resume=user_input), config=config)
-                print(f"Approval Final result: {final_result}")        
-                st.markdown(f"**Agent:** {final_result["final_output"]}")    
+                #check again if there is any interrupt
+                print(f"Check Human Approval Response -- 80 -- {final_result}")
+                chkInterruptMessage1, next_state1 = checkInterrupts(config)
+                if (len(chkInterruptMessage1) > 0):
+                    st.markdown(f"**64_Agent:** {chkInterruptMessage1}")
+                    st.session_state.messages.append(f"**64_Agent:** {chkInterruptMessage1}")
+                else:    
+                    print(f"Approval Final result: {final_result}")        
+                    st.markdown(f"**67_Agent:** {final_result["final_output"]}")    
+                    st.session_state.messages.append(f"**67_Agent:** {final_result["final_output"]}")
             elif "commandexecute_agent" in next_state:
-                print("Parameters enries")
-                final_result = buildgraph().invoke(Command(resume=user_input), config=config)
-                print(f"Command Final result: {final_result}")        
-                st.markdown(f"**Agent:** {final_result["final_output"]}")    
+                    continueHumanLoop(config, user_input)
         else:
             with st.spinner("Processing..."):   
                 if user_input.lower().__contains__("old id"):
@@ -84,7 +108,6 @@ def run_chat(thread_id):
                         st.markdown(human_messages[num])
                         st.markdown(ai_messages[num])
                 else:
-                    state["messages"].append(HumanMessage(content=user_input))
                     for event in buildgraph().stream(state, config, stream_mode="values"):
 
                         print(f"Event response : {event}")
@@ -102,10 +125,12 @@ def run_chat(thread_id):
                             state["messages"].append(AIMessage(content=to_display))
                             st.session_state.messages.append(to_display)
                             st.markdown(to_display)
+                    print("Check Interrupt after event")
                     chkInterruptMessage, next_state = checkInterrupts(config)
                     if (len(chkInterruptMessage) > 0):
                         to_display = chkInterruptMessage
-                        st.markdown(to_display)
+                        st.markdown(f"**IAgent:** {to_display}")
+                        st.session_state.messages.append(f"**IAgent:** {to_display}")
                     else:
                         #clear_update_graph_state(config)
                         print("Nothing")

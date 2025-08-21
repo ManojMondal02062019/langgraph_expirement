@@ -37,7 +37,7 @@ json_final_response_pre_command = [
 
 example_1 = {
             "name" : "instance-ids",
-            "value": "i-xxxxxxxxxxxxxxxxx",
+            "value": "i-000760dffa1b3b4a9",
             "format": "string",
             "validation_message": "",
             "error_message": ""
@@ -45,9 +45,9 @@ example_1 = {
 
 example_2 = {
             "name" : "instance-ids",
-            "value": "i-xxxxxxxxxxxxx",
+            "value": "i-000760dff",
             "format": "string",
-            "validation_message": "The instance id should be of 16 character, prefixed by -i",
+            "validation_message": "The instance id should be of total 19 character including prefixed by -i",
             "error_message": ""
         }
 
@@ -55,6 +55,14 @@ example_3 = {
             "name" : "instance-ids",
             "value": "i-xxxxxxxxxxxxx",
             "format": "string",
-            "validation_message": "The instance id should be of 16 character, prefixed by -i",
+            "validation_message": "",
             "error_message": "Please provide value for instance-ids"
+        }
+
+example_4 = {
+            "name" : "version",
+            "value": "abcd",
+            "format": "number",
+            "validation_message": "The version should be number and not string",
+            "error_message": ""
         }

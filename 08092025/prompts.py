@@ -1,4 +1,4 @@
-from jsonresponse import json_response_format_response, json_response_parameter_response, example_1, example_2, example_3, json_final_response_pre_command
+from jsonresponse import json_response_format_response, json_response_parameter_response, example_1, example_2, example_3, example_4, json_final_response_pre_command
 
 intent_prompt = """
     You are an Assistant in identifying the intent of the user request. 
@@ -62,19 +62,22 @@ router_prompt = """
 
 summary_prompt = """
 
-    Summarize chat from history
+    Summarize chat from history. Remove duplicates, preserve messages having values.
 
 """    
 
 command_pre_service_prompt = f"""
-        You are an AWS assistant and before proceeding further, please ensure that required_parameters mentioned in this variable ## 
-        are provided by the user.
-        Also, kindly ensure that the values provided are validating the format provided.
-        User can provide the optional_parameters but it is not mandatory.
+        You are an expert at extracting information. 
+        Please ensure that you have all the required values for required_parameters mentioned in  #params#. 
+        Please extract the information from the conversation history or from the following text #human#.
+        Also please check message, history, conversation to find in case value for these parameters is already provided.
+        If value are found for the required paramters, then use it and not ask it again from user.
         Kindly return the required_parameters if values are found in conversation history. Also return the parameters whose values 
-        are not successfully validated or have invalid format.
+        are having invalid format. It should compy with parameter format value. If it's boolean format then it should have true or false, 
+        If int or integer or number, then it should have numbers only.
         The response should be very concise and follow the below points while generating the response
         - Strictly adhere to the this format as response. {json_final_response_pre_command}
+        - In the {json_final_response_pre_command} structure if any of the parameter value is found, then display it
         - JSON, keys and values require double-quotes
         - Do not wrap the json codes in JSON markers
 
@@ -85,11 +88,14 @@ command_pre_service_prompt = f"""
 
         3. If instance-ids value does not exists, the response should be like this = {example_3}
 
+        4. If version value does not have number format, the response should be like this = {example_4}
+
     """
 
 command_join_validation_error_prompt = f"""
     Write a concise summary of the following ##.
-    The response should be very concise and return the required parameters (as comma seperated).
+    The response should be very concise and follow the below points while generating the response - 
+    - Please provide values or correct format for the following required fields (as comma seperated)
 """
 
 command_join_validation_error_prompt_worked_1 = f"""
