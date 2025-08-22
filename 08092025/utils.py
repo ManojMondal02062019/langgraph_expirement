@@ -15,10 +15,8 @@ def parseJSONForErrorMessages(json_content: str):
     for item in data:
         # Iterate over each key-value pair in the dictionary
         status = item['error_message'] if len(item['error_message']) > 0 else ""
-        print(f"Utils: Status ::: {status}")
         status1 = item['validation_message'] if len(item['validation_message']) > 0 else ""
-        print(f"Utils: Status 1 ::: {status1}")
 
         if len(status) > 0 or len(status1) > 0:
-            content.append(f"{status} , {status1}")
-    return content            
+            content.append(f"{status}, {status1}")
+    return content

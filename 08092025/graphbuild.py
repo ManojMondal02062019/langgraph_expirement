@@ -2,7 +2,7 @@ from langgraph.graph import StateGraph, END
 from agent_state import AgentState
 from agent_chat import chat_agent
 from agent_identify_service import identifyservice_agent
-from agent_command_execute import commandexecute_agent, procced_with_execution_agent, review_pre_condition_agent 
+from agent_command_execute import commandexecute_agent
 from agent_intent import intent_agent
 from router_agent import route
 from llm_model import llm, memory
@@ -33,8 +33,8 @@ def buildgraph():
     builder.add_node("identifyservice_agent", identifyservice_agent)
     builder.add_node("commandexecute_agent", commandexecute_agent)
     builder.add_node("human_review_node", human_node)
-    builder.add_node("review_pre_condition", review_pre_condition_agent)
-    builder.add_node("proccedwithexecution", procced_with_execution_agent)
+    #builder.add_node("review_pre_condition", review_pre_condition_agent)
+    #builder.add_node("proccedwithexecution", procced_with_execution_agent)
     #builder.add_node("human_ask_parameter", human_ask_node)
     builder.add_node("route", lambda x: x)
 
@@ -49,12 +49,12 @@ def buildgraph():
     builder.add_edge("chat_agent", END)
     builder.add_edge("intent_agent", "identifyservice_agent")
     builder.add_edge("identifyservice_agent", "human_review_node")
-    builder.add_edge("commandexecute_agent", "review_pre_condition")
-    builder.add_conditional_edges(
-        "review_pre_condition",
-        lambda state: "proccedwithexecution" if state["approved"] else "commandexecute_agent"
-    )
-    builder.add_edge("proccedwithexecution", END)
+    #builder.add_edge("commandexecute_agent", "review_pre_condition")
+    #builder.add_conditional_edges(
+    #    "review_pre_condition",
+    #    lambda state: "proccedwithexecution" if state["approved"] else "commandexecute_agent"
+    #)
+    #builder.add_edge("proccedwithexecution", END)
     # Conditional routing based on human review
     #builder.add_conditional_edges(
     #    "human_review_node",
@@ -84,34 +84,22 @@ def buildgraph():
 
     return graph
 
-def human_node_working(state: AgentState):
-    print(f"Node started with state: {state}")
-    # Present current state to human and pause execution
-    value = interrupt({
-        "text_to_review": "Please review the service and corresponding actions. Use Approve, Edit, Modify keywords to provide your feedback"
-    })
-    print(f"Received human input: {value}")
-    # When resumed, this will contain the human's input
-    return {
-        "final_output": value
-    }
-
 def human_node(state: AgentState) -> Command[Literal["commandexecute_agent", "identifyservice_agent"]]:
-    print(f"Human approval node, State : {state}")
+    print(f"GraphBuild: human_node, State : {state}")
     # Present current state to human and pause execution
     value = interrupt({
         "text_to_review": "Please review the service and corresponding actions. Use Approve, Edit, Modify keywords to provide your feedback"
     })
+
     # When resumed, this will contain the human's input
+    print(f"GraphBuild: human_node - {value}")
+    
     if value.lower() == "approve":
-        print(f"Human approval node - Approve")
         #return Command(goto="commandexecute_agent", update={"final_output": "approved"})
         return Command(goto="commandexecute_agent")
     elif value.lower() == "modify":
-        print(f"Human approval node - Modified")
         return Command(goto="identifyservice_agent")    
     else:
-        print(f"Human approval node - Rejected")
         return Command(goto=END, update={"final_output": "Thankyou. You can again start a new search"})
 
 def reviser_node(state: AgentState) -> AgentState:
@@ -121,20 +109,61 @@ def reviser_node(state: AgentState) -> AgentState:
     return state
 
 def human_ask_node(state: AgentState) -> Command[Literal["commandexecute_agent"]]:
-    print(f"Human Ask Node, state: {state}")
+    print(f"GraphBuild: Human Ask Node, state: {state}")
     # Present current state to human and pause execution
     value = interrupt({
         "text_to_review": "Please review the service and corresponding actions. Use Approve, Edit, Modify keywords to provide your feedback"
     })
-    print(f"Received human input----------------------- {value}")
+    print(f"GraphBuild: Received human input: {value}")
     # When resumed, this will contain the human's input
     if value.lower() == "approve":
-        print(f"Received human input----------------------- Approve")
         #return Command(goto="commandexecute_agent", update={"final_output": "approved"})
         return Command(goto="commandexecute_agent")
     elif value.lower() == "modify":
-        print(f"Received human input----------------------- Modified")
         return Command(goto="identifyservice_agent")    
-    else:
-        print(f"Received human input----------------------- Rejected")
+    elif value.lower() == "rejected":
         return Command(goto=END, update={"final_output": "Thankyou. You can again start a new search"})
+    else:
+        pass
+
+def chkHumanLoop(config, user_input):
+    # check for interrupts any
+    chkInterruptMessage, next_state = checkInterrupts(config)
+    approved_values = ["approve","modify","rejected"]
+    final_result = ""
+
+    print(f"Graphbuild: chkHumanLoop:: nextstate: {next_state}")
+    print(f"Graphbuild: chkHumanLoop:: chkInterruptMessage: {chkInterruptMessage}")
+    if (len(chkInterruptMessage) > 0):
+        if ("human_review_node" in next_state):
+            if any(value.lower() in user_input.lower() for value in approved_values):
+                final_result = buildgraph().invoke(Command(resume=user_input), config=config)
+            else:
+                final_result = str(chkInterruptMessage)
+        elif ("commandexecute_agent" == next_state):
+            final_result = buildgraph().invoke(Command(resume=user_input), config=config)
+    else:
+        print("Graphbuild: chkHumanLoop:: No Interruption")
+    
+    print(f"Graphbuild: chkHumanLoop: final_result: {final_result}")
+    return final_result
+
+def checkInterrupts(config):
+    state_snapshot = buildgraph().get_state(config)
+    tool_output = state_snapshot.interrupts        
+    if len(tool_output) > 0:
+        return (tool_output[0].value).get("text_to_review"), state_snapshot.next
+    else:
+        return "",""
+
+def human_node_working_1(state: AgentState):
+    print(f"GraphBuild: Node started with state: {state}")
+    # Present current state to human and pause execution
+    value = interrupt({
+        "text_to_review": "Please review the service and corresponding actions. Use Approve, Edit, Modify keywords to provide your feedback"
+    })
+    print(f"GraphBuild: Received human input: {value}")
+    # When resumed, this will contain the human's input
+    return {
+        "final_output": value
+    }
