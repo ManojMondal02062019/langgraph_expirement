@@ -46,10 +46,14 @@ def commandexecute_agent(state: AgentState) -> AgentState:
     response_text = parseJSONForErrorMessages(response_text)
     print(f"Commandexecute: Error Messages if any :: {response_text}")
     if len(response_text) > 0:
+        state["interrupt_flag"] = True
+        state["messages"].append(AIMessage(content=str(response_text)))
         value = interrupt({
             "text_to_review": f"Error found. Please correct the following messages: {response_text}"
         })
     else:
+        response_text = "We are good to proceed further"
+        state["interrupt_flag"] = False
         response_messages = []
         response_messages.append(AIMessage(content=str(response_text)))
         return {

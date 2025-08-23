@@ -18,5 +18,7 @@ def parseJSONForErrorMessages(json_content: str):
         status1 = item['validation_message'] if len(item['validation_message']) > 0 else ""
 
         if len(status) > 0 or len(status1) > 0:
-            content.append(f"{status}, {status1}")
+            str= status + ',' + status1
+            str = str.strip(',')
+            content.append(str)
     return content

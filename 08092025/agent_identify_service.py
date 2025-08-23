@@ -14,14 +14,12 @@ from langchain_core.messages.utils import filter_messages
 #https://langchain-ai.github.io/langgraph/tutorials/get-started/5-customize-state/#5-manually-update-the-state
 
 def identifyservice_agent(state: AgentState, config: RunnableConfig) -> AgentState:
-    user_msg = state["messages"]    
-    human_messages = filter_messages(user_msg, include_types=["human"])
+    human_messages = filter_messages(state["messages"], include_types=["human"])
     last_user_msg = ""
-    total_messages = len(human_messages)
-    if (total_messages > 0):
-        last_user_msg = (human_messages[total_messages-1]).content
+    if (len(human_messages) > 0):
+        last_user_msg = (human_messages[(len(human_messages))-1]).content
 
-    #print(f"---S---IdentifyService: User Message: {last_user_msg}")
+    print(f"IdentifyService: User Message: {last_user_msg}")
     response_text = "Sorry, I couldn't process your request."
 
     messages = [
@@ -29,23 +27,14 @@ def identifyservice_agent(state: AgentState, config: RunnableConfig) -> AgentSta
         ("human", last_user_msg),
     ]        
     response_text = llm.invoke(messages)
-    #json_resp = response_text.content
-    #json_resp = json_resp.replace("```json", "")
-    #json_resp = json_resp.replace("```", "")
-    response = cleanJson(response_text.content)
-    data_dict = json.loads(response)
-    data_dict['intent'] = False
-    state["aws_service_attr"] = data_dict
-
-    current_messages = []  
-    current_messages.append(AIMessage(content=response))
-    #print(f"---E--- IdentifyService: State Message : {current_messages}")
+    response_text = cleanJson(response_text.content)
+    response_text = json.loads(response_text)
+    print(f"IdentifyService: response : {response_text}")
+    response_messages = []
+    response_messages.append(AIMessage(content=str(response_text)))
 
     return {
-        "messages": current_messages,
-        "aws_service_attr": data_dict,
-        "final_output": data_dict,
-        "llm_output": "identifyservice_agent",
-        "decision_option" : ""
+        "messages": response_messages,
+        "aws_service_attr": response_text,
+        "interrupt_flag": True,
     }
-    

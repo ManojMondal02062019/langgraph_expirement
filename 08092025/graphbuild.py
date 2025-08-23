@@ -9,6 +9,8 @@ from llm_model import llm, memory
 from typing import Literal
 from langgraph.types import interrupt, Command
 from langchain_core.runnables import RunnableConfig
+from langchain_core.messages import AIMessage, HumanMessage
+
 #from langchain_core.runnables.human_input import HumanInput
 
 def print_graph(graph):
@@ -74,33 +76,38 @@ def buildgraph():
     except Exception as e:
         raise RuntimeError(f"Failed to compile LangGraph: {e}")
     
-    #graph = builder.compile(checkpointer=memory)     
-
     #app_graph = graph.get_graph(xray=True) 
     #print_graph(app_graph)
     #app_graph.print_ascii()
-    #app_graph.print_ascii()
-
 
     return graph
 
 def human_node(state: AgentState) -> Command[Literal["commandexecute_agent", "identifyservice_agent"]]:
     print(f"GraphBuild: human_node, State : {state}")
+    question_msg = "Please review the service and corresponding actions. Use Approve, Edit, Modify keywords to provide your feedback"
+    # set the interrupt message as well
+    updateStateWithAIMessage(None, question_msg, state)
     # Present current state to human and pause execution
     value = interrupt({
-        "text_to_review": "Please review the service and corresponding actions. Use Approve, Edit, Modify keywords to provide your feedback"
+        "text_to_review": question_msg
     })
 
     # When resumed, this will contain the human's input
     print(f"GraphBuild: human_node - {value}")
     
     if value.lower() == "approve":
-        #return Command(goto="commandexecute_agent", update={"final_output": "approved"})
+        state["interrupt_flag"] = False
         return Command(goto="commandexecute_agent")
     elif value.lower() == "modify":
+        state["interrupt_flag"] = False
         return Command(goto="identifyservice_agent")    
-    else:
+    elif value.lower() == "rejected":
+        state["interrupt_flag"] = False
         return Command(goto=END, update={"final_output": "Thankyou. You can again start a new search"})
+    else:
+        state["interrupt_flag"] = True
+        pass
+        
 
 def reviser_node(state: AgentState) -> AgentState:
     # ... logic to revise code based on feedback ...
@@ -118,12 +125,16 @@ def human_ask_node(state: AgentState) -> Command[Literal["commandexecute_agent"]
     # When resumed, this will contain the human's input
     if value.lower() == "approve":
         #return Command(goto="commandexecute_agent", update={"final_output": "approved"})
+        state["interrupt_flag"] = False
         return Command(goto="commandexecute_agent")
     elif value.lower() == "modify":
+        state["interrupt_flag"] = False
         return Command(goto="identifyservice_agent")    
     elif value.lower() == "rejected":
+        state["interrupt_flag"] = False
         return Command(goto=END, update={"final_output": "Thankyou. You can again start a new search"})
     else:
+        state["interrupt_flag"] = True
         pass
 
 def chkHumanLoop(config, user_input):
@@ -134,17 +145,24 @@ def chkHumanLoop(config, user_input):
 
     print(f"Graphbuild: chkHumanLoop:: nextstate: {next_state}")
     print(f"Graphbuild: chkHumanLoop:: chkInterruptMessage: {chkInterruptMessage}")
+    print(f"Graphbuild: chkHumanLoop:: user_input: {user_input}")
     if (len(chkInterruptMessage) > 0):
         if ("human_review_node" in next_state):
             if any(value.lower() in user_input.lower() for value in approved_values):
                 final_result = buildgraph().invoke(Command(resume=user_input), config=config)
             else:
                 final_result = str(chkInterruptMessage)
-        elif ("commandexecute_agent" == next_state):
+        elif ("commandexecute_agent" in next_state):
             final_result = buildgraph().invoke(Command(resume=user_input), config=config)
+            print(f"Graphbuild: chkHumanLoop: commandexecute_agent final_result: {final_result}")    
     else:
         print("Graphbuild: chkHumanLoop:: No Interruption")
     
+    interuptmessage, next_stage = checkInterrupts(config)
+    print(f"Graphbuild: chkHumanLoop: again interuptmessage: {interuptmessage}")
+    if len(interuptmessage) > 0:
+        final_result = interuptmessage
+
     print(f"Graphbuild: chkHumanLoop: final_result: {final_result}")
     return final_result
 
@@ -167,3 +185,22 @@ def human_node_working_1(state: AgentState):
     return {
         "final_output": value
     }
+
+def checkInterruptFlag(config):
+    state_snapshot = buildgraph().get_state(config)
+    print(f"Graphbuild: checkInterruptFlag: {state_snapshot.values.get("interrupt_flag")}")
+    return state_snapshot.values.get("interrupt_flag")
+
+def updateStateWithAIMessage(config, ai_new_message, state:AgentState):
+    if config is not None:
+        new_message = AIMessage(content=ai_new_message)
+        buildgraph().update_state(config, {"messages": [new_message]})
+    else:
+        state["messages"].append(AIMessage(content=str(ai_new_message)))
+
+
+def stateWithAllMessage(config):
+    state_snapshot = buildgraph().get_state(config)
+    existing_message = state_snapshot.values.get("messages")
+    print(f"GraphBuild : stateWithAllMessage : ALLLL MESSAGES ---------------- {existing_message}")
+    return existing_message
