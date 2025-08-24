@@ -18,7 +18,7 @@ def generate_uuid() -> str:
     return str(uuid.uuid4())
 
 def displayMessageOnly(message):
-    to_display = f"**DMO Agent:** {message}"
+    to_display = f"**Agent:** {message}"
     st.session_state.messages.append(to_display)
     st.markdown(to_display)
 
@@ -56,9 +56,10 @@ def runInterruptLogic(config, user_input):
     # check for interrupts
     print(f"Main: runInterruptLogic: Checking for interrupts")
     response_interrupt = chkHumanLoop(config, user_input)
-    print(f"Main: runInterruptLogic: After human loop ::::::::::::::::::: {response_interrupt}")
-    if (len(response_interrupt) > 0):
-        displayMessageOnly(response_interrupt)
+    for msg in response_interrupt:
+        print(f"Main: runInterruptLogic: After human loop ::::::::::::::::::: {msg}")
+        if (len(msg) > 0):
+            displayMessageOnly(msg)
 
 def run_chat(thread_id):
     print(f"----------------------- S ----------------------------")
@@ -111,7 +112,7 @@ def run_chat(thread_id):
                         print(f"{id_number_id} ******* Main: NonInterrupt flow")
                         for event in buildgraph().stream(state, config, stream_mode="updates"):
                             print(f"Main Run: Event (not printed in UI) ... {event}")
-                        messages = stateMessagesAndInterrupt(config)
+                        messages = stateMessagesAndInterrupt(config, False)
                         for msg in messages:
                             to_display = f"**Agent:** {msg}"
                             st.session_state.messages.append(to_display)

@@ -134,7 +134,8 @@ def human_ask_node(state: AgentState) -> Command[Literal["commandexecute_agent"]
         return Command(goto="identifyservice_agent")    
     elif value.lower() == "rejected":
         state["interrupt_flag"] = False
-        return Command(goto=END, update={"final_output": "Thankyou. You can again start a new search"})
+        new_ai_message = AIMessage(content="Thankyou. You can again start a new search")
+        return Command(goto=END, update={"messages": state.messages + [new_ai_message]})
     else:
         state["interrupt_flag"] = True
         pass
@@ -144,30 +145,22 @@ def chkHumanLoop(config, user_input):
     chkInterruptMessage, next_state = checkInterrupts(config)
     print(f"GraphBuild : chkHumanLoop: chkInterruptMessage : {chkInterruptMessage}")
     approved_values = ["approve","modify","rejected"]
-    final_result = ""
+    #final_result = ""
 
     print(f"Graphbuild: chkHumanLoop:: user_input: {user_input}")
+
     if (len(chkInterruptMessage) > 0):
         if ("human_review_node" in next_state):
-            if any(value.lower() in user_input.lower() for value in approved_values):
-                final_result = buildgraph().invoke(Command(resume=user_input), config=config)
-            else:
-                final_result = str(chkInterruptMessage)
-            print(f"Graphbuild: chkHumanLoop: human_review_node final_result: {final_result}")
+            found = [item for item in approved_values if item == user_input.lower()]
+            if found:
+                buildgraph().invoke(Command(resume=user_input), config=config)                
         elif ("commandexecute_agent" in next_state):
-            final_result = buildgraph().invoke(Command(resume=user_input), config=config)
-            print(f"Graphbuild: chkHumanLoop: commandexecute_agent final_result: {final_result}")    
+            buildgraph().invoke(Command(resume=user_input), config=config)
+
+        return stateMessagesAndInterrupt(config,True)
     else:
         print("Graphbuild: chkHumanLoop:: No Interruption")
-
-    #check for interrupts
-    interupt_message,next_state = checkInterrupts(config)
-    if (len(interupt_message) > 0):
-        final_result = interupt_message
-        
-    print(f"Graphbuild: chkHumanLoop: Before returning final_result: {final_result}") 
-
-    return (final_result)
+        return None
     
 
 def checkInterrupts(config):
@@ -203,21 +196,37 @@ def updateStateWithAIMessage(config, ai_new_message, state:AgentState):
     else:
         state["messages"].append(AIMessage(content=str(ai_new_message)))
 
-
 def stateWithAllMessage(config):
     state_snapshot = buildgraph().get_state(config)
     existing_message = state_snapshot.values.get("messages")
     print(f"GraphBuild : stateWithAllMessage : ALLLL MESSAGES ---------------- {existing_message}")
     return existing_message
 
-def stateMessagesAndInterrupt(config):
-    messages=[]
-    state_snapshot = buildgraph().get_state(config)
+def readAIMessages(state_snapshot):
     ai_messages = filter_messages(state_snapshot.values.get("messages"), include_types=["ai"])
+    last_response = ""
     if (len(ai_messages) > 0):
         last_response = (ai_messages[len(ai_messages)-1]).content   
-        messages.append(last_response)
+    return last_response
+
+def readInterruptMessages(state_snapshot):
     interrupt_output = state_snapshot.interrupts
+    last_response = ""
     if len(interrupt_output) > 0:
-        messages.append((interrupt_output[0].value).get("text_to_review"))
+        last_response = (interrupt_output[0].value).get("text_to_review")
+    return last_response
+
+
+def stateMessagesAndInterrupt(config, interrupt_flow):
+    messages=[]
+    state_snapshot = buildgraph().get_state(config)
+    if (not interrupt_flow):
+        messages.append(readAIMessages(state_snapshot))
+        messages.append(readInterruptMessages(state_snapshot))
+    else:
+        int_msg = readInterruptMessages(state_snapshot)
+        if (len(int_msg) > 0):
+            messages.append(int_msg)
+        else:
+            messages.append(readAIMessages(state_snapshot))
     return messages
