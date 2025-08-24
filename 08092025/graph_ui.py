@@ -4,11 +4,12 @@ import uuid
 from archive import load_checkpoint, save_checkpoint
 from agent_state import  AgentState         
 from langchain_core.runnables import RunnableConfig
-from graphbuild import buildgraph, chkHumanLoop, checkInterruptFlag, updateStateWithAIMessage, stateWithAllMessage
+from graphbuild import buildgraph, chkHumanLoop, checkInterruptFlag, updateStateWithAIMessage, stateWithAllMessage, checkInterrupts, stateMessagesAndInterrupt
 from langchain_core.messages import HumanMessage, AIMessage
 from langgraph.types import StateSnapshot
 from langgraph.types import Command
 from itertools import count
+from langchain_core.messages.utils import filter_messages
 
 thread_id = None
 number_id = count(1000)
@@ -16,26 +17,48 @@ number_id = count(1000)
 def generate_uuid() -> str:
     return str(uuid.uuid4())
 
-def displayMessage(config):
-    event = buildgraph().get_state(config)
-    if "messages" in event and event["messages"]:
-        last_message = event["messages"][-1]
-        print(f"Main Run: displayMessage: Last message in stream : {last_message.content}")
-        to_display = f"**Agent:** {last_message.content}"
-        state["messages"].append(AIMessage(content=to_display))
-        st.session_state.messages.append(to_display)
-        st.markdown(to_display)
-        print(f"Main Run: Completed------")
-    else:
-        print(f"Main Run: No RESPONSE")
+def displayMessageOnly(message):
+    to_display = f"**DMO Agent:** {message}"
+    st.session_state.messages.append(to_display)
+    st.markdown(to_display)
 
+
+def displayMessageFromObject(config, event, state):
+    if (config is not None): 
+        event = (buildgraph().get_state(config)).values
+        print(f"Config is not none, config event ::::: {str(event)}")
+        ai_messages = filter_messages(event["messages"], include_types=["ai"])
+        print(f"Main: displayMessage: ai response: {ai_messages}")
+        last_response = ""
+        if (len(ai_messages) > 0):
+            last_response = (ai_messages[len(ai_messages)-1])
+            print(f"Main: displayMessage: ai response: {last_response}")
+        else:
+            print("No AI response")
+    elif (event is not None):
+        print("Event is not none")
+        if "messages" in event and event["messages"]:
+            last_message = event["messages"][-1]
+            print(f"Main Run: Last message in stream : {last_message.content}")
+            #displayMessageOnly(last_message.content, state)
+            to_display = f"**#####Agent:** {last_message.content}"
+            state["messages"].append(AIMessage(content=to_display))
+            st.session_state.messages.append(to_display)
+            st.markdown(to_display) 
+
+            print(f"Main Run: Completed------------")
+        else:
+            print(f"Main Run: No RESPONSE")
+    else:
+        print("No config, no event")        
 
 def runInterruptLogic(config, user_input):
     # check for interrupts
     print(f"Main: runInterruptLogic: Checking for interrupts")
     response_interrupt = chkHumanLoop(config, user_input)
+    print(f"Main: runInterruptLogic: After human loop ::::::::::::::::::: {response_interrupt}")
     if (len(response_interrupt) > 0):
-        displayMessage(config)
+        displayMessageOnly(response_interrupt)
 
 def run_chat(thread_id):
     print(f"----------------------- S ----------------------------")
@@ -86,18 +109,17 @@ def run_chat(thread_id):
                         # check for fresh response
                         id_number_id = next(number_id)
                         print(f"{id_number_id} ******* Main: NonInterrupt flow")
-                        idd = 0
-                        for event in buildgraph().stream(state, config, stream_mode="values"):
-                            displayMessage(config)
-
-                        print("Main Run: Check Interrupts after final output")
-                        runInterruptLogic(config, user_input)
+                        for event in buildgraph().stream(state, config, stream_mode="updates"):
+                            print(f"Main Run: Event (not printed in UI) ... {event}")
+                        messages = stateMessagesAndInterrupt(config)
+                        for msg in messages:
+                            to_display = f"**Agent:** {msg}"
+                            st.session_state.messages.append(to_display)
+                            st.markdown(to_display)
                     else:
-                        print("Run Interrupts only")
-                        runInterruptLogic(config, user_input)   
+                        #interrupt is true
+                        runInterruptLogic(config, user_input)
 
-    #updateStateWithAIMessage(config, "Hi.....s")      
-    #stateWithAllMessage(config)
     print(f"{next(number_id)} ----------------------- E ----------------------------")
 
 st.title("AI AWS Assistant")

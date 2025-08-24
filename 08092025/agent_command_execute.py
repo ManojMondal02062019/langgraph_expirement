@@ -47,7 +47,6 @@ def commandexecute_agent(state: AgentState) -> AgentState:
     print(f"Commandexecute: Error Messages if any :: {response_text}")
     if len(response_text) > 0:
         state["interrupt_flag"] = True
-        state["messages"].append(AIMessage(content=str(response_text)))
         value = interrupt({
             "text_to_review": f"Error found. Please correct the following messages: {response_text}"
         })
@@ -58,7 +57,7 @@ def commandexecute_agent(state: AgentState) -> AgentState:
         response_messages.append(AIMessage(content=str(response_text)))
         return {
             "messages": response_messages,
-            "final_output": str(response_text)
+            "interrupt_flag": False
         }
 
     # below code will be executed, if interrupted

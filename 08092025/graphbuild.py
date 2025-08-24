@@ -10,6 +10,7 @@ from typing import Literal
 from langgraph.types import interrupt, Command
 from langchain_core.runnables import RunnableConfig
 from langchain_core.messages import AIMessage, HumanMessage
+from langchain_core.messages.utils import filter_messages
 
 #from langchain_core.runnables.human_input import HumanInput
 
@@ -87,6 +88,7 @@ def human_node(state: AgentState) -> Command[Literal["commandexecute_agent", "id
     question_msg = "Please review the service and corresponding actions. Use Approve, Edit, Modify keywords to provide your feedback"
     # set the interrupt message as well
     updateStateWithAIMessage(None, question_msg, state)
+    print(f"GraphBuild: human_node, Invoke Interrupt and also state is updated, State : {state}")
     # Present current state to human and pause execution
     value = interrupt({
         "text_to_review": question_msg
@@ -140,11 +142,10 @@ def human_ask_node(state: AgentState) -> Command[Literal["commandexecute_agent"]
 def chkHumanLoop(config, user_input):
     # check for interrupts any
     chkInterruptMessage, next_state = checkInterrupts(config)
+    print(f"GraphBuild : chkHumanLoop: chkInterruptMessage : {chkInterruptMessage}")
     approved_values = ["approve","modify","rejected"]
     final_result = ""
 
-    print(f"Graphbuild: chkHumanLoop:: nextstate: {next_state}")
-    print(f"Graphbuild: chkHumanLoop:: chkInterruptMessage: {chkInterruptMessage}")
     print(f"Graphbuild: chkHumanLoop:: user_input: {user_input}")
     if (len(chkInterruptMessage) > 0):
         if ("human_review_node" in next_state):
@@ -152,22 +153,26 @@ def chkHumanLoop(config, user_input):
                 final_result = buildgraph().invoke(Command(resume=user_input), config=config)
             else:
                 final_result = str(chkInterruptMessage)
+            print(f"Graphbuild: chkHumanLoop: human_review_node final_result: {final_result}")
         elif ("commandexecute_agent" in next_state):
             final_result = buildgraph().invoke(Command(resume=user_input), config=config)
             print(f"Graphbuild: chkHumanLoop: commandexecute_agent final_result: {final_result}")    
     else:
         print("Graphbuild: chkHumanLoop:: No Interruption")
-    
-    interuptmessage, next_stage = checkInterrupts(config)
-    print(f"Graphbuild: chkHumanLoop: again interuptmessage: {interuptmessage}")
-    if len(interuptmessage) > 0:
-        final_result = interuptmessage
 
-    print(f"Graphbuild: chkHumanLoop: final_result: {final_result}")
-    return final_result
+    #check for interrupts
+    interupt_message,next_state = checkInterrupts(config)
+    if (len(interupt_message) > 0):
+        final_result = interupt_message
+        
+    print(f"Graphbuild: chkHumanLoop: Before returning final_result: {final_result}") 
+
+    return (final_result)
+    
 
 def checkInterrupts(config):
     state_snapshot = buildgraph().get_state(config)
+    print (f"Graphbuild: checkInterrupts state_snapshot ::::::::::::::: {state_snapshot}")
     tool_output = state_snapshot.interrupts        
     if len(tool_output) > 0:
         return (tool_output[0].value).get("text_to_review"), state_snapshot.next
@@ -204,3 +209,15 @@ def stateWithAllMessage(config):
     existing_message = state_snapshot.values.get("messages")
     print(f"GraphBuild : stateWithAllMessage : ALLLL MESSAGES ---------------- {existing_message}")
     return existing_message
+
+def stateMessagesAndInterrupt(config):
+    messages=[]
+    state_snapshot = buildgraph().get_state(config)
+    ai_messages = filter_messages(state_snapshot.values.get("messages"), include_types=["ai"])
+    if (len(ai_messages) > 0):
+        last_response = (ai_messages[len(ai_messages)-1]).content   
+        messages.append(last_response)
+    interrupt_output = state_snapshot.interrupts
+    if len(interrupt_output) > 0:
+        messages.append((interrupt_output[0].value).get("text_to_review"))
+    return messages
