@@ -36,7 +36,7 @@ def buildgraph():
     builder.add_node("intent_agent", intent_agent)
     builder.add_node("identifyservice_agent", identifyservice_agent)
     builder.add_node("commandexecute_agent", commandexecute_agent)
-    #builder.add_node("agent_run_command",runcommand_agent)
+    builder.add_node("agent_run_command",runcommand_agent)
     builder.add_node("human_review_node", human_node)
     #builder.add_node("review_pre_condition", review_pre_condition_agent)
     #builder.add_node("proccedwithexecution", procced_with_execution_agent)
@@ -54,7 +54,7 @@ def buildgraph():
     builder.add_edge("chat_agent", END)
     builder.add_edge("intent_agent", "identifyservice_agent")
     builder.add_edge("identifyservice_agent", "human_review_node")
-    #builder.add_edge("commandexecute_agent", "agent_run_command")
+    builder.add_edge("commandexecute_agent", "agent_run_command")
     #builder.add_conditional_edges(
     #    "review_pre_condition",
     #    lambda state: "proccedwithexecution" if state["approved"] else "commandexecute_agent"
