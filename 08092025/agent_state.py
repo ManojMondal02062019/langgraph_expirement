@@ -20,4 +20,4 @@ class AgentState(TypedDict):
     decision_message: str
     decision_option: str    
     interrupt_flag: bool
-    #aws_service_values: Dict[str, str]
+    aws_service_values: Optional[dict]

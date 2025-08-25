@@ -6,8 +6,9 @@ from utils import cleanJson, parseJSONForErrorMessages
 from langgraph.types import interrupt, Command
 
 
-def commandexecute_agent(state: AgentState) -> AgentState:
-    print(f"Commandexecute: State Message: {state["messages"]}")
+def runcommand_agent(state: AgentState) -> AgentState:
+    print(f"RUN - RunCommand: State Message: {state["messages"]}")
+    '''
     user_msg = state["aws_service_attr"]
     response_text = "Sorry, I couldn't process your request."
 
@@ -43,36 +44,31 @@ def commandexecute_agent(state: AgentState) -> AgentState:
     print(f"CommandExecute: Response to check parameters (on missing field): {response_text}")
 
     # if there are error messages or validation messages, then we need to interrupt to get user input
-    response_text, aws_keys, aws_values = parseJSONForErrorMessages(response_text)
+    response_text = parseJSONForErrorMessages(response_text)
     print(f"Commandexecute: Error Messages if any :: {response_text}")
-    value = ""
     if len(response_text) > 0:
         state["interrupt_flag"] = True
         value = interrupt({
             "text_to_review": f"Error found. Please correct the following messages: {response_text}"
         })
-    
-    # below code will be executed, after interrupted
-    print(f"CommandExecute: Received Human Input: {value}")
-    
-    # When resumed, this will contain the human's input
-    if len(value.lower()) > 0:
-        print(f"CommandExecute: GOTO COMMAND EXECUTE")
-        state["messages"].append(HumanMessage(content=value))
-        return Command(goto="commandexecute_agent")
     else:
-        print(f"CommandExecute: GOTO Next phase")
-        aws_service_values = {key: value for key, value in zip(aws_keys, aws_values)}
-        print(f"CommandExecute Agent: aws_service_values ::::::: {aws_service_values}")
-        for aws_param in response_text:
-            keys.add(aws_param.get("name").split()[0])
-            values.add(aws_param.get("value"))
-
-        response_text = "We are good to proceed further"
+        response_text = "We are good to proceed further."
+        state["interrupt_flag"] = False
         response_messages = []
         response_messages.append(AIMessage(content=str(response_text)))
         return {
             "messages": response_messages,
             "interrupt_flag": False,
-            "aws_service_values": aws_service_values
+            "final_output"
         }
+
+    # below code will be executed, if interrupted
+    print(f"CommandExecute: Received Human Input: {value}")
+    
+    # When resumed, this will contain the human's input
+    if len(value.lower()) > 0:
+        state["messages"].append(HumanMessage(content=value))
+        return Command(goto="commandexecute_agent")
+    else:
+        return Command(goto=END, update={"final_output": "You are good for execution"})
+    '''
