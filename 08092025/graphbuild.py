@@ -87,8 +87,8 @@ def human_node(state: AgentState) -> Command[Literal["commandexecute_agent", "id
     print(f"GraphBuild: human_node, State : {state}")
     question_msg = "Please review the service and corresponding actions. Use Approve, Edit, Modify keywords to provide your feedback"
     # set the interrupt message as well
-    updateStateWithAIMessage(None, question_msg, state)
-    print(f"GraphBuild: human_node, Invoke Interrupt and also state is updated, State : {state}")
+    #updateStateWithAIMessage(None, question_msg, state)
+    #print(f"GraphBuild: human_node, Invoke Interrupt and also state is updated, State : {state}")
     # Present current state to human and pause execution
     value = interrupt({
         "text_to_review": question_msg
@@ -104,8 +104,9 @@ def human_node(state: AgentState) -> Command[Literal["commandexecute_agent", "id
         state["interrupt_flag"] = False
         return Command(goto="identifyservice_agent")    
     elif value.lower() == "rejected":
-        state["interrupt_flag"] = False
-        return Command(goto=END, update={"final_output": "Thankyou. You can again start a new search"})
+        new_ai_message = []
+        new_ai_message.append(AIMessage(content="Thankyou. You can again start a new search.."))        
+        return Command(goto=END, update={"messages": new_ai_message, "interrupt_flag": False})
     else:
         state["interrupt_flag"] = True
         pass
@@ -126,16 +127,13 @@ def human_ask_node(state: AgentState) -> Command[Literal["commandexecute_agent"]
     print(f"GraphBuild: Received human input: {value}")
     # When resumed, this will contain the human's input
     if value.lower() == "approve":
-        #return Command(goto="commandexecute_agent", update={"final_output": "approved"})
         state["interrupt_flag"] = False
         return Command(goto="commandexecute_agent")
     elif value.lower() == "modify":
         state["interrupt_flag"] = False
         return Command(goto="identifyservice_agent")    
     elif value.lower() == "rejected":
-        state["interrupt_flag"] = False
-        new_ai_message = AIMessage(content="Thankyou. You can again start a new search")
-        return Command(goto=END, update={"messages": state.messages + [new_ai_message]})
+        return Command(goto=END)
     else:
         state["interrupt_flag"] = True
         pass

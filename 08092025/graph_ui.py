@@ -56,10 +56,13 @@ def runInterruptLogic(config, user_input):
     # check for interrupts
     print(f"Main: runInterruptLogic: Checking for interrupts")
     response_interrupt = chkHumanLoop(config, user_input)
-    for msg in response_interrupt:
-        print(f"Main: runInterruptLogic: After human loop ::::::::::::::::::: {msg}")
-        if (len(msg) > 0):
-            displayMessageOnly(msg)
+    if ((response_interrupt is not None) and (len(response_interrupt) > 0)):
+        for msg in response_interrupt:
+            print(f"Main: runInterruptLogic: After human loop ::::::::::::::::::: {msg}")
+            if (len(msg) > 0):
+                displayMessageOnly(msg)
+    else:
+        pass
 
 def run_chat(thread_id):
     print(f"----------------------- S ----------------------------")
