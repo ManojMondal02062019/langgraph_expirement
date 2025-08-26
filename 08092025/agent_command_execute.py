@@ -52,7 +52,12 @@ def commandexecute_agent(state: AgentState) -> AgentState:
             "text_to_review": f"Error found. Please correct the following messages: {response_text}"
         })
     else:
-        value = ""
+        print(f"CommandExecute: GOTO Next phase")
+        aws_service_values = {key: value for key, value in zip(aws_keys, aws_values)}
+        print(f"CommandExecute Agent: aws_service_values ::::::: {aws_service_values}")
+        response_messages = []
+        response_messages.append(AIMessage(content=str(aws_service_values)))
+        return Command(resume="continue", update={"messages": response_messages, "interrupt_flag": False, "aws_service_values": aws_service_values})     
     
     # below code will be executed, after interrupted
     print(f"CommandExecute: Received Human Input: {value}")
@@ -61,21 +66,6 @@ def commandexecute_agent(state: AgentState) -> AgentState:
     if len(value) > 0:
         print(f"CommandExecute: GOTO COMMAND EXECUTE")
         response_messages = []
-        response_messages.append(HumanMessage(content=value))        
+        response_messages.append(HumanMessage
+        (content=value))        
         return Command(goto="commandexecute_agent", update={"messages": response_messages})
-    else:
-        print(f"CommandExecute: GOTO Next phase")
-        aws_service_values = {key: value for key, value in zip(aws_keys, aws_values)}
-        print(f"CommandExecute Agent: aws_service_values ::::::: {aws_service_values}")
-        for aws_param in response_text:
-            keys.add(aws_param.get("name").split()[0])
-            values.add(aws_param.get("value"))
-
-        response_text = "We are good to proceed further"
-        response_messages = []
-        response_messages.append(AIMessage(content=str(aws_service_values)))
-        return {
-            "messages": response_messages,
-            "interrupt_flag": False,
-            "aws_service_values": aws_service_values       
-        }

@@ -12,6 +12,8 @@ from langgraph.types import interrupt, Command
 from langchain_core.runnables import RunnableConfig
 from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.messages.utils import filter_messages
+from confirmation_tools import executeAWSCommandTool
+from langgraph.prebuilt import ToolNode
 
 #from langchain_core.runnables.human_input import HumanInput
 
@@ -29,7 +31,18 @@ def print_graph(graph):
     for edge in edges:
         print(f"  {edge[0]} -> {edge[1]}")
 
+# Define the routing logic (should_continue)
+def should_continue(state: AgentState):
+    last_message = state["messages"][-1]
+    if last_message.tool_calls:
+        return "tools"
+    return END # If no tool call, end the graph
+
 def buildgraph():
+
+    # Node to handle tool invocation
+    tool_node = ToolNode([executeAWSCommandTool])
+
     # Define tools and bind them to model
     builder = StateGraph(AgentState)
     builder.add_node("chat_agent", chat_agent)
@@ -37,6 +50,7 @@ def buildgraph():
     builder.add_node("identifyservice_agent", identifyservice_agent)
     builder.add_node("commandexecute_agent", commandexecute_agent)
     builder.add_node("agent_run_command",runcommand_agent)
+    builder.add_node("tool_invocation_node", tool_node)
     builder.add_node("human_review_node", human_node)
     #builder.add_node("review_pre_condition", review_pre_condition_agent)
     #builder.add_node("proccedwithexecution", procced_with_execution_agent)
@@ -54,7 +68,12 @@ def buildgraph():
     builder.add_edge("chat_agent", END)
     builder.add_edge("intent_agent", "identifyservice_agent")
     builder.add_edge("identifyservice_agent", "human_review_node")
-    builder.add_edge("commandexecute_agent", "agent_run_command")
+    builder.add_conditional_edges(
+        "agent_run_command",
+        should_continue,
+        {"tools": "tool_invocation_node", END: END}
+    )    
+    builder.add_edge("tool_invocation_node", "agent_run_command")
     #builder.add_conditional_edges(
     #    "review_pre_condition",
     #    lambda state: "proccedwithexecution" if state["approved"] else "commandexecute_agent"
@@ -191,6 +210,13 @@ def checkInterruptFlag(config):
 def updateStateWithAIMessage(config, ai_new_message, state:AgentState):
     if config is not None:
         new_message = AIMessage(content=ai_new_message)
+        buildgraph().update_state(config, {"messages": [new_message]})
+    else:
+        state["messages"].append(AIMessage(content=str(ai_new_message)))
+
+def updateStateWithHumanMessage(config, ai_new_message, state:AgentState):
+    if config is not None:
+        new_message = HumanMessage(content=ai_new_message)
         buildgraph().update_state(config, {"messages": [new_message]})
     else:
         state["messages"].append(AIMessage(content=str(ai_new_message)))
