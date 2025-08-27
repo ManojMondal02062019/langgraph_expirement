@@ -21,3 +21,4 @@ class AgentState(TypedDict):
     decision_option: str    
     interrupt_flag: bool
     aws_service_values: Optional[dict]
+    approval_status: str

@@ -36,5 +36,4 @@ def identifyservice_agent(state: AgentState, config: RunnableConfig) -> AgentSta
     return {
         "messages": response_messages,
         "aws_service_attr": response_text,
-        "interrupt_flag": True,
     }

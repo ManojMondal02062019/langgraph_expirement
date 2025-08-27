@@ -19,9 +19,10 @@ def commandexecute_agent(state: AgentState) -> AgentState:
     # read all the human messages as values will be in human messages only
     #summarized message
     for msg in state["messages"]:
-        if isinstance(msg, HumanMessage):
-            human_messages.append("User: " + msg.content)
+        if isinstance(msg, HumanMessage) and msg not in human_messages:
+            human_messages.append(msg.content)
     
+
     # now we have to summarize the user input
     messages = [
         ("system", summary_prompt),
@@ -46,26 +47,32 @@ def commandexecute_agent(state: AgentState) -> AgentState:
     response_text, aws_keys, aws_values = parseJSONForErrorMessages(response_text)
     print(f"Commandexecute: Error Messages if any :: {response_text}")
 
+    #user_input = interrupt({"prompt": "Please revise the following text:", "text_to_revise": state["current_text"]})
+
     if len(response_text) > 0:
-        state["interrupt_flag"] = True
-        value = interrupt({
-            "text_to_review": f"Error found. Please correct the following messages: {response_text}"
-        })
+        response_messages = []
+        for response in response_text:
+            response_messages.append(AIMessage(content=str(response)))
+        state["messages"] = response_messages
+        state["approval_status"] = "notapproved"
     else:
-        print(f"CommandExecute: GOTO Next phase")
-        aws_service_values = {key: value for key, value in zip(aws_keys, aws_values)}
-        print(f"CommandExecute Agent: aws_service_values ::::::: {aws_service_values}")
-        response_messages = []
-        response_messages.append(AIMessage(content=str(aws_service_values)))
-        return Command(resume="continue", update={"messages": response_messages, "interrupt_flag": False, "aws_service_values": aws_service_values})     
+        state["approval_status"] = "approve"
     
-    # below code will be executed, after interrupted
-    print(f"CommandExecute: Received Human Input: {value}")
-    
-    # When resumed, this will contain the human's input
-    if len(value) > 0:
-        print(f"CommandExecute: GOTO COMMAND EXECUTE")
-        response_messages = []
-        response_messages.append(HumanMessage
-        (content=value))        
-        return Command(goto="commandexecute_agent", update={"messages": response_messages})
+    return state
+
+def pre_commandexecute_agent(state: AgentState) -> AgentState:
+    print(f"---Performing Action--- state :: {state}")
+    if state["approval_status"] == "approve":
+        print("Go to next step")
+    else:
+        response_text = state["messages"][-1].content
+        print(f"pre_commandexecute_agent: response : {response_text}")
+        value = interrupt({
+            "text_to_review": f"Please take action on the following messages: {response_text}"
+        })
+        print(f"Response received after CommandExecute Interrupt: {value}")
+        human_message = []
+        human_message.append(HumanMessage(content=value))
+        state["messages"] = human_message
+        state["approval_status"] = value
+    return state

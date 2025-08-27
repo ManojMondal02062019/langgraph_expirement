@@ -2,7 +2,7 @@ from langgraph.graph import StateGraph, END
 from agent_state import AgentState
 from agent_chat import chat_agent
 from agent_identify_service import identifyservice_agent
-from agent_command_execute import commandexecute_agent
+from agent_command_execute import commandexecute_agent, pre_commandexecute_agent
 from agent_run_command import runcommand_agent
 from agent_intent import intent_agent
 from router_agent import route
@@ -49,9 +49,10 @@ def buildgraph():
     builder.add_node("intent_agent", intent_agent)
     builder.add_node("identifyservice_agent", identifyservice_agent)
     builder.add_node("commandexecute_agent", commandexecute_agent)
-    builder.add_node("agent_run_command",runcommand_agent)
-    builder.add_node("tool_invocation_node", tool_node)
+    #builder.add_node("agent_run_command",runcommand_agent)
+    #builder.add_node("tool_invocation_node", tool_node)
     builder.add_node("human_review_node", human_node)
+    builder.add_node("pre_commandexecute_agent",pre_commandexecute_agent)
     #builder.add_node("review_pre_condition", review_pre_condition_agent)
     #builder.add_node("proccedwithexecution", procced_with_execution_agent)
     #builder.add_node("human_ask_parameter", human_ask_node)
@@ -68,12 +69,28 @@ def buildgraph():
     builder.add_edge("chat_agent", END)
     builder.add_edge("intent_agent", "identifyservice_agent")
     builder.add_edge("identifyservice_agent", "human_review_node")
+    builder.add_edge("human_review_node","commandexecute_agent")
+    builder.add_edge("commandexecute_agent","pre_commandexecute_agent")
+    # Define conditional edge based on approval status
     builder.add_conditional_edges(
-        "agent_run_command",
-        should_continue,
-        {"tools": "tool_invocation_node", END: END}
-    )    
-    builder.add_edge("tool_invocation_node", "agent_run_command")
+        source="pre_commandexecute_agent",
+        path=lambda state: "commandexecute_agent" if state["approval_status"] != "approve" else END,
+    )
+    #workflow.add_conditional_edges(
+    #    source="human_approval",
+    #    path=lambda state: None, # The routing is handled by the `Command` in the node
+    #    path_map={
+    #        "final_step": "final_step",
+    #        "rejection_handler": "rejection_handler",
+    #    },
+    #)    
+    builder.add_edge("pre_commandexecute_agent", END)
+    #builder.add_conditional_edges(
+    #    "agent_run_command",
+    #    should_continue,
+    #    {"tools": "tool_invocation_node", END: END}
+    #)    
+    
     #builder.add_conditional_edges(
     #    "review_pre_condition",
     #    lambda state: "proccedwithexecution" if state["approved"] else "commandexecute_agent"
@@ -103,32 +120,30 @@ def buildgraph():
 
     return graph
 
+#check this tutorial for accepting correct user_input
+# https://langchain-ai.github.io/langgraph/how-tos/human_in_the_loop/add-human-in-the-loop/#validate-human-input
 def human_node(state: AgentState) -> Command[Literal["commandexecute_agent", "identifyservice_agent"]]:
     print(f"GraphBuild: human_node, State : {state}")
-    question_msg = "Please review the service and corresponding actions. Use Approve, Edit, Modify keywords to provide your feedback"
-    # set the interrupt message as well
-    #updateStateWithAIMessage(None, question_msg, state)
-    #print(f"GraphBuild: human_node, Invoke Interrupt and also state is updated, State : {state}")
-    # Present current state to human and pause execution
+    question_msg = "Please review the above service and corresponding actions. Use Approve (to continue), Edit (modify the query), Start New (start a new search) to proceed."
+    user_msg = state["messages"][-1].content
+    user_msg = f"{user_msg}\n\n{question_msg}"
     value = interrupt({
-        "text_to_review": question_msg
+        "text_to_review": user_msg
     })
-
     # When resumed, this will contain the human's input
     print(f"GraphBuild: human_node - {value}")
-    
+
     if value.lower() == "approve":
-        state["interrupt_flag"] = False
         return Command(goto="commandexecute_agent")
     elif value.lower() == "modify":
-        state["interrupt_flag"] = False
         return Command(goto="identifyservice_agent")    
-    elif value.lower() == "rejected":
+    elif value.lower() == "start new":
         new_ai_message = []
         new_ai_message.append(AIMessage(content="Thankyou. You can again start a new search.."))        
         return Command(goto=END, update={"messages": new_ai_message, "interrupt_flag": False})
     else:
-        state["interrupt_flag"] = True
+        # do nothing and 
+        print("NOTHING BLOCK")
         pass
         
 
@@ -162,18 +177,19 @@ def chkHumanLoop(config, user_input):
     # check for interrupts any
     chkInterruptMessage, next_state = checkInterrupts(config)
     print(f"GraphBuild : chkHumanLoop: chkInterruptMessage : {chkInterruptMessage}")
-    approved_values = ["approve","modify","rejected"]
+    approved_values = ["approve","modify","start new"]
     #final_result = ""
 
     print(f"Graphbuild: chkHumanLoop:: user_input: {user_input}")
 
-    if (len(chkInterruptMessage) > 0):
+    if (chkInterruptMessage is not None and len(chkInterruptMessage) > 0):
         if ("human_review_node" in next_state):
             found = [item for item in approved_values if item == user_input.lower()]
             if found:
                 buildgraph().invoke(Command(resume=user_input), config=config)                
         elif ("commandexecute_agent" in next_state):
-            buildgraph().invoke(Command(resume=user_input), config=config)
+            #buildgraph().invoke(Command(resume=user_input), config=config)
+            print("NOTHIN TO EXECUTE AS COMMANDEXECUTE is handled by builder")
 
         return stateMessagesAndInterrupt(config,True)
     else:
@@ -204,7 +220,8 @@ def human_node_working_1(state: AgentState):
 
 def checkInterruptFlag(config):
     state_snapshot = buildgraph().get_state(config)
-    print(f"Graphbuild: checkInterruptFlag: {state_snapshot.values.get("interrupt_flag")}")
+    print(f"ATTN Graphbuild: checkInterruptFlag: {state_snapshot.values.get("interrupt_flag")}")
+    print(f"ATTN Graphbuild: STATE: {str(state_snapshot)}")
     return state_snapshot.values.get("interrupt_flag")
 
 def updateStateWithAIMessage(config, ai_new_message, state:AgentState):
@@ -250,8 +267,16 @@ def stateMessagesAndInterrupt(config, interrupt_flow):
         messages.append(readInterruptMessages(state_snapshot))
     else:
         int_msg = readInterruptMessages(state_snapshot)
-        if (len(int_msg) > 0):
+        if (int_msg is not None and len(int_msg) > 0):
             messages.append(int_msg)
         else:
             messages.append(readAIMessages(state_snapshot))
     return messages
+
+def readInterruptMessage(config):
+    messages=[]
+    state_snapshot = buildgraph().get_state(config)
+    int_msg = readInterruptMessages(state_snapshot)
+    if (int_msg is not None and len(int_msg) > 0):
+        messages.append(int_msg)
+    return messages    
