@@ -3,11 +3,14 @@ from langgraph.config import get_store
 from validate_tools import validate_params
 from langgraph.prebuilt import create_react_agent
 from langgraph.checkpoint.memory import InMemorySaver
+from confirmation_tools import executeAWSCommandTool
 
 
 gem_model_name="gemini-pro"
 
 llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash")
+
+llm_with_tools = llm.bind_tools([executeAWSCommandTool])
 
 memory = InMemorySaver()
 

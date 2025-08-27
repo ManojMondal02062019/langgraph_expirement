@@ -52,25 +52,29 @@ identify_service_prompt_1 = f"""
 
 router_prompt = """
 
-    You are a routing assistant and take decision on user input and current conversation history, to classify 
+    You are a routing assistant and take decision on user input and ongoing conversation history, to classify 
     the user's message as either
-    - intent_agent: if the request is related to AWS Cloud Services, features and executing aws commands
-    - chat_agent: for anything else (general conversation, non-aws related)
-    Respond with only the label: intent_agent or chat_agent
+    - intent_agent: if the request is related to AWS Cloud Services, features and executing aws commands. 
+    - chat_agent: if the user response is NEW conversation and related to general topic, non-aws related. 
+    If the user response is related to answers asked from old conversation OR from interruptions or Resume, 
+    then route it to intent_agent as per the flow. Check the graph flow and from where the Interupt or Resume are invoked.
+    Respond then with the label: intent_agent or chat_agent.
+    Note - Please check the interruptions and resume flow accordingly as from which node or agent it got invoked.
 
 """    
 
 summary_prompt = """
 
     Summarize chat from history. Remove duplicates, preserve messages having values.
+    Consider the latest values for the variables or parameters. Discard the old values.
 
 """    
 
 command_pre_service_prompt = f"""
         You are an expert at extracting information. 
-        Please ensure that you have all the required values for required_parameters mentioned in  #params#. 
-        Please extract the information from the conversation history or from the following text #human#.
-        Also please check message, history, conversation to find in case value for these parameters is already provided.
+        Please ensure that you have all the values for required_parameters mentioned in #params#. 
+        Please ensure that you have all the valid values for the required_parameters mentioned in #params#. 
+        Check the Human messages, conversation history to extract the values for required parameters from #human#. 
         If value are found for the required paramters, then use it and not ask it again from user.
         Kindly return the required_parameters if values are found in conversation history. Also return the parameters whose values 
         are having invalid format. It should compy with parameter format value. If it's boolean format then it should have true or false, 
