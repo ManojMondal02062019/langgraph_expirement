@@ -52,12 +52,17 @@ identify_service_prompt_1 = f"""
 
 router_prompt = """
 
-    You are a routing assistant and take decision on user input and ongoing conversation history, to classify 
-    the user's message as either
+    You are a routing assistant and take decision on user input whether to route to intent_agent or chat_agent.
+    If user input is related to ongoing conversations then please use the ongoing intent and don't change it.
+    If user input is related to AWS services and features, use intent_agent
+    If user response is realted to Interrupt and Resume then please use intent_agent
+    If user input is NOT above and is a generic input then ONLY use chat_agent.
+    The user's message as either
     - intent_agent: if the request is related to AWS Cloud Services, features and executing aws commands. 
     - chat_agent: if the user response is NEW conversation and related to general topic, non-aws related. 
     If the user response is related to answers asked from old conversation OR from interruptions or Resume, 
-    then route it to intent_agent as per the flow. Check the graph flow and from where the Interupt or Resume are invoked.
+    then route it to intent_agent as per the flow. 
+    Check the graph flow and from where the Interupt or Resume are invoked.
     Respond then with the label: intent_agent or chat_agent.
     Note - Please check the interruptions and resume flow accordingly as from which node or agent it got invoked.
 

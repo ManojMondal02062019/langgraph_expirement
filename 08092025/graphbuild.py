@@ -12,8 +12,8 @@ from langgraph.types import interrupt, Command
 from langchain_core.runnables import RunnableConfig
 from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.messages.utils import filter_messages
-from confirmation_tools import executeAWSCommandTool
 from langgraph.prebuilt import ToolNode
+from agent_run_command import runcommand_agent
 
 #from langchain_core.runnables.human_input import HumanInput
 
@@ -41,7 +41,7 @@ def should_continue(state: AgentState):
 def buildgraph():
 
     # Node to handle tool invocation
-    tool_node = ToolNode([executeAWSCommandTool])
+    #tool_node = ToolNode([executeAWSCommandTool])
 
     # Define tools and bind them to model
     builder = StateGraph(AgentState)
@@ -53,6 +53,7 @@ def buildgraph():
     #builder.add_node("tool_invocation_node", tool_node)
     builder.add_node("human_review_node", human_node)
     builder.add_node("pre_commandexecute_agent",pre_commandexecute_agent)
+    builder.add_node("agent_run_command",runcommand_agent)
     #builder.add_node("review_pre_condition", review_pre_condition_agent)
     #builder.add_node("proccedwithexecution", procced_with_execution_agent)
     #builder.add_node("human_ask_parameter", human_ask_node)
@@ -76,15 +77,8 @@ def buildgraph():
         source="pre_commandexecute_agent",
         path=lambda state: "commandexecute_agent" if state["approval_status"] != "approve" else END,
     )
-    #workflow.add_conditional_edges(
-    #    source="human_approval",
-    #    path=lambda state: None, # The routing is handled by the `Command` in the node
-    #    path_map={
-    #        "final_step": "final_step",
-    #        "rejection_handler": "rejection_handler",
-    #    },
-    #)    
-    builder.add_edge("pre_commandexecute_agent", END)
+    builder.add_edge("pre_commandexecute_agent", "agent_run_command")
+    builder.add_edge("agent_run_command", END)
     #builder.add_conditional_edges(
     #    "agent_run_command",
     #    should_continue,

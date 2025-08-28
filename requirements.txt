@@ -1,0 +1,4 @@
+pydantic
+langchain
+fastapi[standard]
+streamlit_chat 
