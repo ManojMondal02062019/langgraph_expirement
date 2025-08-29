@@ -3,14 +3,15 @@ from langgraph.prebuilt import InjectedState
 from agent_state import AgentState
 from typing import Annotated
 import subprocess
+from langchain_core.runnables import RunnableConfig
 import os
 import json
 
 @tool
-def execute_aws_command(state: Annotated[AgentState, InjectedState]) -> str:
+def execute_aws_command(text: str, config: RunnableConfig):
 
     """
-    Executed the awscli command.
+    Retrieve the parameters and command from State and executed the awscli command
 
     Args:
         Retrieve the command and arguments from state 
@@ -21,21 +22,25 @@ def execute_aws_command(state: Annotated[AgentState, InjectedState]) -> str:
 
     # aws_service_values - contains the parameters
     # aws_service_attr - contains the command
-    aws_service = state["aws_service_attr"]
-    aws_params = state["aws_service_values"]
+    aws_service_attr = config.get("configurable", {}).get("command")
+    aws_service_values = config.get("configurable", {}).get("values")
 
-    print(f"TOOL: query: {query}")
-    print(f"TOOL: aws_service: {str(aws_service)}")
-    print(f"TOOL: query: {str(aws_params)}")
+    print(f"State Variables from Tools {aws_service_attr}")
+    print(f"Supress from Tools {aws_service_values}")
+
+    print(f"TOOL: suppress_warning: {text}")
 
     # construct the command to be executed
-    service_c = json.loads(aws_service)
-    service_d = json.loads(aws_params)
-
-    final_command = f"{service_c['service_name']} {service_c['command']} --instance-ids i-000760dffa1b3b4a9)"
+    service_c = json.loads(aws_service_attr)
+    service_d = json.loads(aws_service_values)
+    params = ""
+    for key, value in service_d.items():
+        params= f"{params} {key} {value}"
+    final_command = f"{service_c['service_name']} {service_c['command']} {params}"
     #TODO for key, value in my_dict.items():
     #       print(f"Key: {key}, Value: {value}")
 
+    print(f"FIANL COMMAND ----------- {final_command}")
     if state["session_id"] is None or len(state["session_id"]) == 0:
         duration_seconds = 900
         get_session_command = ["aws", "sts", "get-session-token", "--duration-seconds", str(duration_seconds)]

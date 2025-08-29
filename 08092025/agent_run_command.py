@@ -5,13 +5,27 @@ from langchain_core.messages import AIMessage, HumanMessage
 from utils import cleanJson, parseJSONForErrorMessages
 from langgraph.types import interrupt, Command
 from command_execution_tools import execute_aws_command
+from langchain_core.runnables.config import RunnableConfig
 
 
 def runcommand_agent(state: AgentState) -> AgentState:
-    print(f"RUN - RunCommand: State Message: {state["messages"]}")
+    print(f"RUN - RunCommand: State Message: {str(state)}")
+    print(f"RUN - RunCommand: aws_service_attr: {state["aws_service_attr"]}")
+    print(f"RUN - RunCommand: values Message 11: {state["aws_service_values"]}")
 
+    config_values={"command": state["aws_service_attr"], "values": state["aws_service_values"]}
+    print(f"Config Values .... {str(config_values)}")
+    
+    #my_config= RunnableConfig(
+    #    "configurable"= config_values, 
+    #    "tags"=["command_execution_tool"],
+    #    "metadata"={"source": "agentstate"}
+    #)
+
+    my_config={"configurable": config_values}
     #manual invoke tool
-    output = execute_aws_command.invoke(config={"configurable": {"state": state}})
+    print("Invoke Tools...................")
+    output = execute_aws_command.invoke({"text": "abc"}, config=my_config)
     
     #TODO: if output is error, then we might have to take user input
     #else complete it.

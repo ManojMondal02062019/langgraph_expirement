@@ -75,9 +75,14 @@ def buildgraph():
     # Define conditional edge based on approval status
     builder.add_conditional_edges(
         source="pre_commandexecute_agent",
-        path=lambda state: "commandexecute_agent" if state["approval_status"] != "approve" else END,
+        path=lambda state: "commandexecute_agent" if state["approval_status"] != "approve" else "agent_run_command",
     )
-    builder.add_edge("pre_commandexecute_agent", "agent_run_command")
+    #builder.add_conditional_edges(
+    #    "pre_commandexecute_agent",
+    #    lambda state: state["approval_status"],{
+    #        "commandexecute_agent": "approve",
+    #        "pre_commandexecute_agent" : "notapproved"
+    #    })
     builder.add_edge("agent_run_command", END)
     #builder.add_conditional_edges(
     #    "agent_run_command",
