@@ -19,7 +19,14 @@ def generate_uuid() -> str:
     return str(uuid.uuid4())
 
 def displayMessageOnly(message, agent_name):
-    for msg in message:    
+    if (agent_name == "Agent22"):
+        print(f"MMMMMMMMMSSSSSSSSSS {message}")
+    inde = 1
+    message = [s for s in message if s != '']
+    for msg in message:
+        if (agent_name == "Agent22"):
+            print(f"{inde} MMSSGG Inside {msg}")
+            inde = inde+1
         to_display = f"**{agent_name}:** {msg}"
         st.session_state.messages.append(to_display)
         st.markdown(to_display)
@@ -70,7 +77,7 @@ def run_chat(thread_id,interruptFlag):
     print(f"----------------------- S ----------------------------")
     state = {}
     state["messages"] = []
-    approved_values = ["approve","modify","start new"]
+    approved_values = ["ok","modify","end", "1", "2", "3"]
     config = {
         "configurable": {
             "thread_id": thread_id
@@ -123,6 +130,9 @@ def run_chat(thread_id,interruptFlag):
                                 to_proceed = False
                                 msg_list = ["Please provide correct value"]
                                 displayMessageOnly(msg_list, "AgentN")
+                        elif "pre_commandexecute_agent" in next_state:
+                            print("OR HERE IT COMES")
+
                         
                         if (to_proceed):
                             for event in buildgraph().stream(Command(resume=user_input.lower()), config=config):
@@ -135,10 +145,12 @@ def run_chat(thread_id,interruptFlag):
                                     interruptFlag = True
                                     print("BREAK")
                                     break
-                                #else:
+                                else:
                                     # let's avoid this
-                                    #messages = stateMessagesAndInterrupt(config, False)
-                                    #displayMessageOnly(messages, "Agent2")
+                                    messages = stateMessagesAndInterrupt(config, False)
+                                    displayMessageOnly(messages, "Agent22")
+
+                                    print("HERE it should come")
                     else:
                         id_number_id = next(number_id)
                         print(f"{id_number_id} ******* Main: NonInterrupt flow START *******")

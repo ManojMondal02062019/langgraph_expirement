@@ -10,12 +10,8 @@ from langchain_core.runnables.config import RunnableConfig
 
 def runcommand_agent(state: AgentState) -> AgentState:
     print(f"RUN - RunCommand: State Message: {str(state)}")
-    print(f"RUN - RunCommand: aws_service_attr: {state["aws_service_attr"]}")
-    print(f"RUN - RunCommand: values Message 11: {state["aws_service_values"]}")
 
-    config_values={"command": state["aws_service_attr"], "values": state["aws_service_values"]}
-    print(f"Config Values .... {str(config_values)}")
-    
+    config_values={"command": state["aws_service_attr"], "values": state["aws_service_values"]}    
     #my_config= RunnableConfig(
     #    "configurable"= config_values, 
     #    "tags"=["command_execution_tool"],
@@ -23,14 +19,16 @@ def runcommand_agent(state: AgentState) -> AgentState:
     #)
 
     my_config={"configurable": config_values}
-    #manual invoke tool
-    print("Invoke Tools...................")
-    output = execute_aws_command.invoke({"text": "abc"}, config=my_config)
+
+    print("Invoke Tool...................")
+    output = execute_aws_command.invoke("Run this command",config=my_config)
     
     #TODO: if output is error, then we might have to take user input
     #else complete it.
+    response_messages = []
+    response_messages.append(AIMessage(content=str(output)))
     
-    return {
-        "messages": str(output),
-        "interrupt_flag": False,
-    }
+    state["messages"] = response_messages
+    state["interrupt_flag"] = False
+
+    return state

@@ -1,6 +1,6 @@
 from agent_state import AgentState
 from llm_model import llm, agent
-from prompts import identify_service_prompt
+from prompts import identify_service_prompt_1 
 from langchain_core.messages import AIMessage
 from langchain_core.runnables.config import RunnableConfig
 from langchain_core.callbacks import adispatch_custom_event
@@ -21,6 +21,7 @@ def identifyservice_agent(state: AgentState, config: RunnableConfig) -> AgentSta
 
     print(f"IdentifyService: User Message: {last_user_msg}")
     response_text = "Sorry, I couldn't process your request."
+    identify_service_prompt = identify_service_prompt_1.replace("#human_message#", last_user_msg)
 
     messages = [
         ("system", identify_service_prompt),

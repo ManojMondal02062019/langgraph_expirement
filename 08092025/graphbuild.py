@@ -123,7 +123,7 @@ def buildgraph():
 # https://langchain-ai.github.io/langgraph/how-tos/human_in_the_loop/add-human-in-the-loop/#validate-human-input
 def human_node(state: AgentState) -> Command[Literal["commandexecute_agent", "identifyservice_agent"]]:
     print(f"GraphBuild: human_node, State : {state}")
-    question_msg = "Please review the above service and corresponding actions. Use Approve (to continue), Edit (modify the query), Start New (start a new search) to proceed."
+    question_msg = "Please review the result and corresponding actions.\n\nUse OK or 1 (to continue), Edit or 2 (modify query), Exit or 3 (begin new) to proceed."
     user_msg = state["messages"][-1].content
     user_msg = f"{user_msg}\n\n{question_msg}"
     value = interrupt({
@@ -132,11 +132,13 @@ def human_node(state: AgentState) -> Command[Literal["commandexecute_agent", "id
     # When resumed, this will contain the human's input
     print(f"GraphBuild: human_node - {value}")
 
-    if value.lower() == "approve":
+    if value.lower() == "ok":
         return Command(goto="commandexecute_agent")
-    elif value.lower() == "modify":
-        return Command(goto="identifyservice_agent")    
-    elif value.lower() == "start new":
+    elif value.lower() == "edit":
+        new_ai_message = []
+        new_ai_message.append(AIMessage(content="Modify your query.."))
+        return Command(goto=END, update={"messages": new_ai_message, "interrupt_flag": False, "aws_service_attr": null})
+    elif value.lower() == "exit":
         new_ai_message = []
         new_ai_message.append(AIMessage(content="Thankyou. You can again start a new search.."))        
         return Command(goto=END, update={"messages": new_ai_message, "interrupt_flag": False})
@@ -270,6 +272,7 @@ def stateMessagesAndInterrupt(config, interrupt_flow):
             messages.append(int_msg)
         else:
             messages.append(readAIMessages(state_snapshot))
+    print(f"FF Graphbuild: stateMessagesAndInterrupt: {messages}")
     return messages
 
 def readInterruptMessage(config):

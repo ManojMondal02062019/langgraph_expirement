@@ -8,10 +8,10 @@ import os
 import json
 
 @tool
-def execute_aws_command(input: str, config: RunnableConfig):
+def execute_aws_command_for_config(input: str, config: RunnableConfig):
 
     """
-    Retrieve the parameters and command from State and executed the awscli command
+    Execute script to check if aws is correctly configured
 
     Args:
         Retrieve the command and arguments from state 
@@ -20,36 +20,23 @@ def execute_aws_command(input: str, config: RunnableConfig):
         str: Command output
     """
 
-    aws_service_attr = config.get("configurable", {}).get("command")
-    aws_service_values = config.get("configurable", {}).get("values")
+    command_to_run = config.get("configurable", {}).get("command")
+    print(f"TOOL: FINAL COMMAND TO EXECUTE: {command_to_run}")
 
-    # construct the command to be executed
-    service_c = aws_service_attr
-    print(f"TOOL: Service Command: {str(service_c)}")
-    service_d = aws_service_values
-    print(f"TOOL: Service Params: {str(service_d)}")
-    params = ""
-    for key, value in service_d.items():
-        params= f"{params} {key} {value}"
-    final_command = f"aws {service_c['service_name']} {service_c['command']} {params}"
-
-    print(f"TOOL: FINAL COMMAND TO EXECUTE: {final_command}")
-    #if state["session_id"] is None or len(state["session_id"]) == 0:
-    # get the session_id
-    #duration_seconds = 900
-    #get_session_command = ["aws", "sts", "get-session-token", "--duration-seconds", str(duration_seconds)]
-    #aws_session_value = get_awscli_output(get_session_command)
-    #aws_session_token = aws_session_value['SessionToken']
-    #print(f"Session Token ::::: {aws_session_value}")
-    
     # now execute the command
     output = get_awscli_output(final_command)
-    output = output.replace("\n"," ")
-    output = output.strip()
+    output = check_exact_type(output)
     print(f"============== Final Output ========================")
     print(output)
     print(f"============== END Final Output ========================")
     return str(output)
+
+def check_exact_type(obj):
+    if type(obj) is str:
+        obj.replace("\n"," ")
+        obj.strip()
+    print(f"Inside object type check: {type(obj)}")
+    return obj
 
 def get_awscli_output(command):
     try:

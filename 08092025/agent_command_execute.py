@@ -41,17 +41,15 @@ def commandexecute_agent(state: AgentState) -> AgentState:
     response_text = llm.invoke(messages).content
     response_text = cleanJson(response_text)
 
-    print(f"CommandExecute: Response to check parameters (on missing field): {response_text}")
+    print(f"CommandExecute: Check parameters (on missing field, if any): {response_text}")
 
     # if there are error messages or validation messages, then we need to interrupt to get user input
     response_text, aws_keys, aws_values = parseJSONForErrorMessages(response_text)
-    print(f"Commandexecute: Error Messages if any :: {response_text}")
-
-    #user_input = interrupt({"prompt": "Please revise the following text:", "text_to_revise": state["current_text"]})
+    print(f"Commandexecute: Error Messages if any (after parse): {response_text}")
 
     if len(response_text) > 0:
         response_messages = []
-        final_response = "Please correct the following issues -  "
+        final_response = "Need information on below-\n\n"
         tmp_response = ""
         slno = 1
         for response in response_text:
@@ -63,7 +61,7 @@ def commandexecute_agent(state: AgentState) -> AgentState:
         state["approval_status"] = "notapproved"
     else:
         # response is good to proceed with.
-        print("APPROVVEDDDDD..........................")
+        print("CommandExecute: Approved")
         aws_service_values = {key: value for key, value in zip(aws_keys, aws_values)}
         response_messages = []
         response_messages.append(AIMessage(content=str(aws_service_values)))
@@ -74,16 +72,16 @@ def commandexecute_agent(state: AgentState) -> AgentState:
     return state
 
 def pre_commandexecute_agent(state: AgentState) -> AgentState:
-    print(f"---Performing Action--- state :: {state}")
+    print(f"PreCommandExecute, state: {state}")
     if state["approval_status"] == "approve":
-        print("Go to next step")
+        print("PreCommandExecute, Go to next step")
     else:
         response_text = state["messages"][-1].content
         print(f"pre_commandexecute_agent: response : {response_text}")
         value = interrupt({
             "text_to_review": response_text
         })
-        print(f"Response received after CommandExecute Interrupt: {value}")
+        print(f"PreCommandExecute, User Response received: {value}")
         human_message = []
         human_message.append(HumanMessage(content=value))
         state["messages"] = human_message
