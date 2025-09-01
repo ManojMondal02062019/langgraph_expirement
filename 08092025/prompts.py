@@ -1,4 +1,4 @@
-from jsonresponse import json_response_format_response, json_response_parameter_response, example_1, example_2, example_3, example_4, json_final_response_pre_command
+from jsonresponse import json_response_format_response, json_response_parameter_response, example_1, example_2, example_3, example_4, example_5, json_final_response_pre_command
 
 intent_prompt = """
     You are an Assistant in identifying the intent of the user request. 
@@ -19,7 +19,8 @@ system_prompt = """
 
 identify_service_prompt = f"""
         You are an AWS assistant and provide only the AWS Service Name and action extracted from user prompt.
-        Only return the Service Name, action, command, required and optional parameters. The response should be very concise.
+        Only return the Service Name, action, command, required and optional parameters. 
+        The response should be very concise.
         The response should be very concise and follow the below points while generating the response
         - Strictly adhere to the described {json_response_format_response} schema in the response.
         - JSON, keys and values require double-quotes
@@ -27,24 +28,16 @@ identify_service_prompt = f"""
     """
 
 identify_service_prompt_1 = f"""
-    You are an AWS cloud agent which uses website https://docs.aws.amazon.com/cli/latest/reference/#available-services.
-    to understand the user input and extract the AWS Service Name and actions associated with it. 
-    NOTE - Do not include response from SDK nor from REST API nor from boto3. ONLY refer to cli documentation.
-    You are required to 
-    - understand the user message and extract the AWS service name.
-    - understand the command or action from the user message and find the available methods that can be used to run the action 
+    You are an AWS cloud agent which should always use best search engine (either google or Bing) and 
+    get best search results to generate response. 
+    - You need to understand the user input #human_message#.
+    - The user request should be searched using search engine AND related to AWS Services.
+    - Search or Find full details on the user requested AWS service and action requested in #human_message# request.
+    - Read the Command, Required Parameters, Optional Parameters, Example for executing the user request.
+    - Read the Prerequisites, Steps to generate response.
+    - Generate response as AWSCLI CODE to execute and NOT as AWS Management Console.
 
-    Think again and respond with below details.
-    - AWS Service Name, 
-    - action, 
-    - command, 
-    - all the required parameters,
-    - all optional parameters,
-    - Synopsis,
-    - Options,
-    - Global Options.
-    The response should be very concise. 
-    The output should be as per this example {json_response_format_response}.
+    The response should be very concise and should be answered in {json_response_format_response} format. 
     We don't want markdown in our output
     - return the data in a JSON code block without a language tag.
     - JSON, keys and values require double-quotes
@@ -77,18 +70,22 @@ summary_prompt = """
 
 command_pre_service_prompt = f"""
         You are an expert at extracting information. 
-        Please ensure that you have all the values for required_parameters mentioned in #params#. 
-        Please ensure that you have all the valid values for the required_parameters mentioned in #params#. 
-        Check the Human messages, conversation history to extract the values for required parameters from #human#. 
-        If value are found for the required paramters, then use it and not ask it again from user.
-        Kindly return the required_parameters if values are found in conversation history. Also return the parameters whose values 
-        are having invalid format. It should compy with parameter format value. If it's boolean format then it should have true or false, 
-        If int or integer or number, then it should have numbers only.
+            - Please ensure that you have the values for all parameters marked as 'required' from #params#. 
+            - Please ensure that you have the valid values for the required and optional mentioned in #params#. 
+            - Check the Human messages, conversation history to extract the values for required and optional
+            parameters from #human#. 
+            - If value are found for the required paramters and is relevant for the command, then use it and 
+            not ask it again from user. Example - To retrieve information you can reuse existing values but for 
+            creating new resource you cannot use existing values. Think thoughtfully to use existing values.
+            - Return the parameters whose values are having invalid format. It should compy with parameter 
+            format value. If it's boolean format then it should have true or false, 
+            If int or integer or number, then it should have numbers only.
+        
         The response should be very concise and follow the below points while generating the response
-        - Strictly adhere to the this format as response. {json_final_response_pre_command}
-        - In the {json_final_response_pre_command} structure if any of the parameter value is found, then display it
-        - JSON, keys and values require double-quotes
-        - Do not wrap the json codes in JSON markers
+            - Strictly adhere to the this format as response. {json_final_response_pre_command}
+            - In the {json_final_response_pre_command} structure if any of the parameter value is found, then display it
+            - JSON, keys and values require double-quotes
+            - Do not wrap the json codes in JSON markers
 
         Examples: the same response format shall be produced for all required parameters and for optional parameters if provided
         1. For a valid value, the response should be like this = {example_1}
@@ -98,6 +95,8 @@ command_pre_service_prompt = f"""
         3. If instance-ids value does not exists, the response should be like this = {example_3}
 
         4. If version value does not have number format, the response should be like this = {example_4}
+
+        4. If not a required parameter and is optional, then the response should be like this = {example_5}
 
     """
 

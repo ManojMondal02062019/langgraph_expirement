@@ -6,6 +6,7 @@ from agent_state import  AgentState
 from langchain_core.runnables import RunnableConfig
 from graphbuild import buildgraph, chkHumanLoop, checkInterruptFlag, updateStateWithAIMessage
 from graphbuild import stateWithAllMessage, checkInterrupts, stateMessagesAndInterrupt, readInterruptMessage
+from graphbuild import readAIMessagesFromConfig, readInterruptMessageFromConfig 
 from langchain_core.messages import HumanMessage, AIMessage
 from langgraph.types import StateSnapshot
 from langgraph.types import Command
@@ -18,18 +19,59 @@ number_id = count(1000)
 def generate_uuid() -> str:
     return str(uuid.uuid4())
 
-def displayMessageOnly(message, agent_name):
+def displayMessageOnly(message, agent_name, color):
     if (agent_name == "Agent22"):
-        print(f"MMMMMMMMMSSSSSSSSSS {message}")
+        print(f"MMSS {message}")
     inde = 1
-    message = [s for s in message if s != '']
     for msg in message:
         if (agent_name == "Agent22"):
             print(f"{inde} MMSSGG Inside {msg}")
             inde = inde+1
         to_display = f"**{agent_name}:** {msg}"
         st.session_state.messages.append(to_display)
-        st.markdown(to_display)
+        if (color == "red"):
+            st.markdown(f":red[{to_display}]")
+        elif (color == "blue"):
+            st.markdown(f":blue[{to_display}]")
+        else:
+            st.markdown(to_display)
+
+
+def invokeGraph(graph, state, resume, config, user_input):
+    if (resume):
+        for event in graph.stream(Command(resume=user_input.lower()), config=config):
+            print(f"Main: Interrupt Flow: Event: {event}")
+            if "__interrupt__" in event:
+                print("### Main IF, Interrupt")
+                msg = "###Graph interrupted! Awaiting human input."
+                print(msg)
+                messages = readInterruptMessage(config)
+                displayMessageOnly(messages, "Agent1", "red")
+                interruptFlag = True
+                print("BREAK")
+                break
+            else:
+                # let's avoid this
+                print("### Main IF, No Interrupt")
+                messages = readAIMessagesFromConfig(config)
+                displayMessageOnly(messages, "Agent2", "blue")
+    else:
+        check_interrupt_in_event = False
+        for event in buildgraph().stream(state, config, stream_mode="updates"):
+            print(f"Main: NIFlow: Event: {event}")
+            if "__interrupt__" in event:
+                check_interrupt_in_event = True
+
+        # given preference to interrupt
+        if check_interrupt_in_event:
+            print("****** Main NIF, Interrupt")
+            messages = readInterruptMessage(config)
+            displayMessageOnly(messages, "Agent3", "red")
+        else:
+            print("****** Main NIF, No Interrupt")
+            messages = readAIMessagesFromConfig(config)
+            displayMessageOnly(messages, "Agent4", "blue")
+                        
 
 
 def displayMessageFromObject(config, event, state):
@@ -61,23 +103,12 @@ def displayMessageFromObject(config, event, state):
     else:
         print("No config, no event")        
 
-def runInterruptLogic(config, user_input):
-    # check for interrupts
-    print(f"Main: runInterruptLogic: Checking for interrupts")
-    response_interrupt = chkHumanLoop(config, user_input)
-    if ((response_interrupt is not None) and (len(response_interrupt) > 0)):
-        for msg in response_interrupt:
-            print(f"Main: runInterruptLogic: After human loop ::::::::::::::::::: {msg}")
-            if (len(msg) > 0):
-                displayMessageOnly(msg)
-    else:
-        pass
 
 def run_chat(thread_id,interruptFlag):
     print(f"----------------------- S ----------------------------")
     state = {}
     state["messages"] = []
-    approved_values = ["ok","modify","end", "1", "2", "3"]
+    approved_values = ["ok","edit","exit", "1", "2", "3"]
     config = {
         "configurable": {
             "thread_id": thread_id
@@ -118,59 +149,34 @@ def run_chat(thread_id,interruptFlag):
                         st.markdown(ai_messages[num])
                 else:
                     chkInterrupt, next_state = checkInterrupts(config)
-                    print (f"Main Run: Checking interruptFlag : {chkInterrupt}")
-                    print (f"Main Run: Checking next_state : {next_state}")
+                    print (f"Main Run: Check interruptFlag : {chkInterrupt}")
+                    print (f"Main Run: Check next_state : {next_state}")
                     if (len(chkInterrupt)>0):
                         #check the input values and #lets see the next state
                         to_proceed = True
                         if "human_review_node" in next_state:
                             if any(item == user_input.lower() for item in approved_values):
-                                print("Value found!")
+                                print("Value found! Let's procced..")
                             else:
                                 to_proceed = False
                                 msg_list = ["Please provide correct value"]
-                                displayMessageOnly(msg_list, "AgentN")
+                                displayMessageOnly(msg_list, "AgentN", "")
                         elif "pre_commandexecute_agent" in next_state:
                             print("OR HERE IT COMES")
 
-                        
                         if (to_proceed):
-                            for event in buildgraph().stream(Command(resume=user_input.lower()), config=config):
-                                print(f"=============================={event}")
-                                if "__interrupt__" in event:
-                                    msg = "******Graph interrupted! Awaiting human input."
-                                    print(msg)
-                                    messages = readInterruptMessage(config)
-                                    displayMessageOnly(messages, "Agent1")
-                                    interruptFlag = True
-                                    print("BREAK")
-                                    break
-                                else:
-                                    # let's avoid this
-                                    messages = stateMessagesAndInterrupt(config, False)
-                                    displayMessageOnly(messages, "Agent22")
-
-                                    print("HERE it should come")
+                            invokeGraph(buildgraph(), state, True, config, user_input.lower())
+                            #to_proceed
                     else:
                         id_number_id = next(number_id)
                         print(f"{id_number_id} ******* Main: NonInterrupt flow START *******")
-                        for event in buildgraph().stream(state, config, stream_mode="updates"):
-                            print(f"Agent3 : Event: {event}")
-                            if "__interrupt__" in event:
-                                print("****** Main Interrupted! Awaiting human input.")
-                                messages = readInterruptMessage(config)
-                                displayMessageOnly(messages, "Agent3")
-                                interruptFlag = True
-                                break
-                            else:
-                                interruptFlag = False
-                                print(f"Main Not Interrupted: Event (not printed in UI) ...")
+                        invokeGraph(buildgraph(), state, False, config, user_input.lower())
                         print(f"{id_number_id} ******* Main: NonInterrupt flow END *******")
                         
-                        if (not interruptFlag):
-                            print("Main: Agent 4: Getting all the messages to be displayed")
-                            messages = stateMessagesAndInterrupt(config, False)
-                            displayMessageOnly(messages, "Agent4")                        
+                        #if (not interruptFlag):
+                        #    print("Main: Agent 4: Getting all the messages to be displayed")
+                        #    messages = stateMessagesAndInterrupt(config, False)
+                        #    displayMessageOnly(messages, "Agent4")                        
 
     print(f"{next(number_id)} ----------------------- E ----------------------------")
 
@@ -182,7 +188,7 @@ if 'messages' not in st.session_state:
     st.session_state.index_id = 0
     st.interrupt_flag=False
     print(f"THREAD_ID : {st.session_state.thread_id}")
-    st.markdown("Enter 'Old Id: XXXXX' to load previous conversation or proceed with your query") 
+    st.markdown(":green[Enter 'Old Id: XXXXX' to load previous conversation or proceed with your query]") 
     st.session_state.messages.append("Enter 'Old Id: XXXXX' to load previous conversation or proceed with your query")
 
 

@@ -70,7 +70,7 @@ def buildgraph():
     builder.add_edge("chat_agent", END)
     builder.add_edge("intent_agent", "identifyservice_agent")
     builder.add_edge("identifyservice_agent", "human_review_node")
-    builder.add_edge("human_review_node","commandexecute_agent")
+    #builder.add_edge("human_review_node","commandexecute_agent")
     builder.add_edge("commandexecute_agent","pre_commandexecute_agent")
     # Define conditional edge based on approval status
     builder.add_conditional_edges(
@@ -121,7 +121,7 @@ def buildgraph():
 
 #check this tutorial for accepting correct user_input
 # https://langchain-ai.github.io/langgraph/how-tos/human_in_the_loop/add-human-in-the-loop/#validate-human-input
-def human_node(state: AgentState) -> Command[Literal["commandexecute_agent", "identifyservice_agent"]]:
+def human_node(state: AgentState) -> Command[Literal["commandexecute_agent", "identifyservice_agent", END]]:
     print(f"GraphBuild: human_node, State : {state}")
     question_msg = "Please review the result and corresponding actions.\n\nUse OK or 1 (to continue), Edit or 2 (modify query), Exit or 3 (begin new) to proceed."
     user_msg = state["messages"][-1].content
@@ -130,22 +130,31 @@ def human_node(state: AgentState) -> Command[Literal["commandexecute_agent", "id
         "text_to_review": user_msg
     })
     # When resumed, this will contain the human's input
-    print(f"GraphBuild: human_node - {value}")
-
-    if value.lower() == "ok":
-        return Command(goto="commandexecute_agent")
-    elif value.lower() == "edit":
-        new_ai_message = []
-        new_ai_message.append(AIMessage(content="Modify your query.."))
-        return Command(goto=END, update={"messages": new_ai_message, "interrupt_flag": False, "aws_service_attr": null})
-    elif value.lower() == "exit":
-        new_ai_message = []
+    print(f"GraphBuild: human_node, value is ------ {value}")
+    new_ai_message = state["messages"]
+    aws_service_attr = state["aws_service_attr"]
+    if value.lower() == "ok" or value.lower() == "1":
+        new_ai_message.append(AIMessage(content="Proceeding..."))
+        goto="commandexecute_agent"
+    elif value.lower() == "edit" or value.lower() == "2":
+        new_ai_message.append(AIMessage(content="Modify your query..."))
+        aws_service_attr = None
+        goto="END"
+    elif value.lower() == "exit" or value.lower() == "3":
         new_ai_message.append(AIMessage(content="Thankyou. You can again start a new search.."))        
-        return Command(goto=END, update={"messages": new_ai_message, "interrupt_flag": False})
+        goto="END"
+        aws_service_attr = None
     else:
         # do nothing and 
         print("NOTHING BLOCK")
         pass
+
+    return Command(
+        # this is the state update
+        update={"messages": new_ai_message, "aws_service_attr": aws_service_attr},
+        # this is a replacement for an edge
+        goto=goto,
+    )
         
 
 def reviser_node(state: AgentState) -> AgentState:
@@ -200,7 +209,6 @@ def chkHumanLoop(config, user_input):
 
 def checkInterrupts(config):
     state_snapshot = buildgraph().get_state(config)
-    print (f"Graphbuild: checkInterrupts state_snapshot ::::::::::::::: {state_snapshot}")
     tool_output = state_snapshot.interrupts        
     if len(tool_output) > 0:
         return (tool_output[0].value).get("text_to_review"), state_snapshot.next
@@ -221,9 +229,8 @@ def human_node_working_1(state: AgentState):
 
 def checkInterruptFlag(config):
     state_snapshot = buildgraph().get_state(config)
-    print(f"ATTN Graphbuild: checkInterruptFlag: {state_snapshot.values.get("interrupt_flag")}")
-    print(f"ATTN Graphbuild: STATE: {str(state_snapshot)}")
-    return state_snapshot.values.get("interrupt_flag")
+    print(f"Graphbuild: checkInterruptFlag: {state_snapshot.interrupts}")
+    return len(state_snapshot.interrupts) > 0
 
 def updateStateWithAIMessage(config, ai_new_message, state:AgentState):
     if config is not None:
@@ -265,7 +272,7 @@ def stateMessagesAndInterrupt(config, interrupt_flow):
     state_snapshot = buildgraph().get_state(config)
     if (not interrupt_flow):
         messages.append(readAIMessages(state_snapshot))
-        messages.append(readInterruptMessages(state_snapshot))
+        #messages.append(readInterruptMessages(state_snapshot))
     else:
         int_msg = readInterruptMessages(state_snapshot)
         if (int_msg is not None and len(int_msg) > 0):
@@ -282,3 +289,28 @@ def readInterruptMessage(config):
     if (int_msg is not None and len(int_msg) > 0):
         messages.append(int_msg)
     return messages    
+
+def readInterruptMessageFromConfig(config):
+    messages=[]
+    state_snapshot = buildgraph().get_state(config)
+    int_msg = readInterruptMessages(state_snapshot)
+    if (int_msg is not None and len(int_msg) > 0):
+        messages.append(int_msg)
+    return messages    
+
+def readAIMessagesFromConfig(config):
+    state_snapshot = buildgraph().get_state(config)
+    ai_messages = filter_messages(state_snapshot.values.get("messages"), include_types=["ai"])
+    last_response = []
+    if (len(ai_messages) > 0):
+        last_response.append((ai_messages[len(ai_messages)-1]).content)
+    return last_response
+
+# Node to trim messages
+def trim_messages_node(state: AgentState):
+    messages = state["messages"]
+    # Keep only the last 3 messages
+    if len(messages) > 3:
+        print(f"Trimmed State Messages")
+        return {"messages": messages[-3:]}
+    return {}

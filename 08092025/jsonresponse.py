@@ -31,7 +31,8 @@ json_final_response_pre_command = [
     "value": "i-xxxxxxxxxxxxxxxxx",
     "format": "string",
     "validation_message": "",
-    "error_message": ""
+    "error_message": "",
+    "mandatory": "Yes"
   }
 ]
 
@@ -40,7 +41,8 @@ example_1 = {
             "value": "i-000760dffa1b3b4a9",
             "format": "string",
             "validation_message": "",
-            "error_message": ""
+            "error_message": "",
+            "mandatory": "Yes"
         }
 
 example_2 = {
@@ -48,7 +50,8 @@ example_2 = {
             "value": "i-000760dff",
             "format": "string",
             "validation_message": "The instance id should be of total 19 character including prefixed by -i",
-            "error_message": ""
+            "error_message": "",
+            "mandatory": "Yes"
         }
 
 example_3 = {
@@ -56,7 +59,8 @@ example_3 = {
             "value": "i-xxxxxxxxxxxxx",
             "format": "string",
             "validation_message": "",
-            "error_message": "Please provide value for instance-ids"
+            "error_message": "Please provide value for instance-ids",
+            "mandatory": "Yes"
         }
 
 example_4 = {
@@ -64,5 +68,15 @@ example_4 = {
             "value": "abcd",
             "format": "number",
             "validation_message": "The version should be number and not string",
-            "error_message": ""
+            "error_message": "",
+            "mandatory": "Yes"
+        }
+
+example_5 = {
+            "name" : "SecurityGroup",
+            "value": "sg-xxxxxxx",
+            "format": "string",
+            "validation_message": "",
+            "error_message": "",
+            "mandatory": "No. If already exists, will use it else please provide it"
         }

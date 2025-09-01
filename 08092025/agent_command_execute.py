@@ -22,6 +22,7 @@ def commandexecute_agent(state: AgentState) -> AgentState:
         if isinstance(msg, HumanMessage) and msg not in human_messages:
             human_messages.append(msg.content)
     
+    print(f"Get the prompt -> {summary_prompt}")
 
     # now we have to summarize the user input
     messages = [
@@ -49,11 +50,12 @@ def commandexecute_agent(state: AgentState) -> AgentState:
 
     if len(response_text) > 0:
         response_messages = []
-        final_response = "Need information on below-\n\n"
+        final_response = "Values for the below parameters required to proceed: \n\n"
         tmp_response = ""
         slno = 1
         for response in response_text:
-            tmp_response = tmp_response + f"({slno}) {response}  "
+            tmp_response = tmp_response + f"({slno}) {response}, "
+            print(f">> {slno}. CommandExecute: Iterate {tmp_response}")
             slno = slno + 1
         
         response_messages.append(AIMessage(content=str(final_response + tmp_response)))
