@@ -6,7 +6,8 @@ json_response_format_response = {
     "options": "--instance-ids (list), --additional-info (string), --dry-run | --no-dry-run (boolean)",
     "global_options": "--debug (boolean), --endpoint-url (string)",
     "required_parameters": "--instance-ids <instance-id>",
-    "optional_parameters": "Dry Run"
+    "optional_parameters": "Dry Run",
+    "awscli_command": "aws ec2 start-instances --instance-ids (list); aws ec2 describe-instances --instance-ids (string))"
 }
 
 json_response_parameter_response = {
@@ -65,9 +66,9 @@ example_3 = {
 
 example_4 = {
             "name" : "version",
-            "value": "abcd",
-            "format": "number",
-            "validation_message": "The version should be number and not string",
+            "value": -1.1,
+            "format": "integer",
+            "validation_message": "The version should be a positive number",
             "error_message": "",
             "mandatory": "Yes"
         }

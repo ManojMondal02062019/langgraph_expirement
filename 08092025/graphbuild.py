@@ -134,7 +134,7 @@ def human_node(state: AgentState) -> Command[Literal["commandexecute_agent", "id
     new_ai_message = state["messages"]
     aws_service_attr = state["aws_service_attr"]
     if value.lower() == "ok" or value.lower() == "1":
-        new_ai_message.append(AIMessage(content="Proceeding..."))
+        new_ai_message.append(AIMessage(content="Processing the request..."))
         goto="commandexecute_agent"
     elif value.lower() == "edit" or value.lower() == "2":
         new_ai_message.append(AIMessage(content="Modify your query..."))

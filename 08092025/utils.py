@@ -14,17 +14,26 @@ def parseJSONForErrorMessages(json_content: str):
     content = []
     aws_keys = []
     aws_values = []
+    missing_value = ""
+    incorrect_value = ""
     for item in data:
         # Iterate over each key-value pair in the dictionary
-        if item["value"] is None:
-            item['error_message'] = f"Please provide value for {item['name'].split()[0]}"
-        status = item['error_message'] if len(item['error_message']) > 0 else ""
-        status1 = item['validation_message'] if len(item['validation_message']) > 0 else ""
-        aws_keys.append(item['name'].split()[0])
-        aws_values.append(item['value'])
+        if item["value"] is None or len(item["value"]) == 0:
+            missing_value = missing_value + item['name'].split()[0] + ", " 
+        # Iterate over each key-value pair in the dictionary
+        if item["validation_message"] is not None or len(item["validation_message"]) > 0:
+            incorrect_value = item['name'].split()[0] + ", "
+        
+        if item["value"] is not None and item["validation_message"] is not None and item["error_message"] is not None:
+            if (len(item["value"])>0 and len(item["validation_message"])==0 and len(item["error_message"])==0):
+                aws_keys.append(item['name'].split()[0])
+                aws_values.append(item['value'])
 
-        if len(status) > 0 or len(status1) > 0:
-            content.append((status + ',' + status1).strip(','))
+    if len(missing_value) > 0:
+        content.append("Missing Values: " + missing_value.strip(', '))
+    if len(incorrect_value) > 0:
+        content.append("Invalid Values: " + incorrect_value.strip(', '))
+    
     return content,aws_keys,aws_values
 
 def parseJSONForKeysValues(json_content: str):

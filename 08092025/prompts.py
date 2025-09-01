@@ -20,11 +20,13 @@ system_prompt = """
 identify_service_prompt = f"""
         You are an AWS assistant and provide only the AWS Service Name and action extracted from user prompt.
         Only return the Service Name, action, command, required and optional parameters. 
-        The response should be very concise.
-        The response should be very concise and follow the below points while generating the response
-        - Strictly adhere to the described {json_response_format_response} schema in the response.
-        - JSON, keys and values require double-quotes
-        - Do not wrap the json codes in JSON markers
+        - Also prepare all the list of commands required to finally execute the actual command requested by the user.
+        - Generate response as AWSCLI CODE to execute and NOT as AWS Management Console.
+        - The response should be very concise.
+        - The response should be very concise and follow the below points while generating the response
+            - Strictly adhere to the described {json_response_format_response} schema in the response.
+            - JSON, keys and values require double-quotes
+            - Do not wrap the json codes in JSON markers
     """
 
 identify_service_prompt_1 = f"""
@@ -32,10 +34,12 @@ identify_service_prompt_1 = f"""
     get best search results to generate response. 
     - You need to understand the user input #human_message#.
     - The user request should be searched using search engine AND related to AWS Services.
-    - Search or Find full details on the user requested AWS service and action requested in #human_message# request.
-    - Read the Command, Required Parameters, Optional Parameters, Example for executing the user request.
+    - Retrieve relevant details on the user requested AWS service and action requested in #human_message# request.
+    - Do not specify all the parameters. Provide only those parameters which are relevant to execute the request
+    - Read the Command, Parameters, Example required for executing the user request.
     - Read the Prerequisites, Steps to generate response.
     - Generate response as AWSCLI CODE to execute and NOT as AWS Management Console.
+    - Provide the actual command to be executed in "awscli_commands" in the {json_response_format_response} response.
 
     The response should be very concise and should be answered in {json_response_format_response} format. 
     We don't want markdown in our output
@@ -69,21 +73,24 @@ summary_prompt = """
 """    
 
 command_pre_service_prompt = f"""
-        You are an expert at extracting information. 
-            - Please ensure that you have the values for all parameters marked as 'required' from #params#. 
-            - Please ensure that you have the valid values for the required and optional mentioned in #params#. 
-            - Check the Human messages, conversation history to extract the values for required and optional
-            parameters from #human#. 
-            - If value are found for the required paramters and is relevant for the command, then use it and 
-            not ask it again from user. Example - To retrieve information you can reuse existing values but for 
-            creating new resource you cannot use existing values. Think thoughtfully to use existing values.
-            - Return the parameters whose values are having invalid format. It should compy with parameter 
-            format value. If it's boolean format then it should have true or false, 
-            If int or integer or number, then it should have numbers only.
-        
+        You are an expert at extracting information and provide response ONLY in JSON format.
+            - Do not use any SAMPLE VALUES or Values with xxxxxxx or Values with <> provided along with 'awscli_command'. 
+                It's only for reference and do not consider it.
+            - DO not copy the parameter name into the parameter value. It's not valid and do not consider it.
+            - Do not use values with <>. It's not valid and do not consider it.
+            - Please ensure that you consider all parameters mentioned in 'awscli_command' from #params#, to be requested by the user.
+            - Check the old conversation history to extract the VALID values for the parameters from #human#. 
+                NOTE - Do not consider sample values provided within 'awscli_command'.
+            - If correct values are found from conversation history for the required paramters, then use it and 
+                not ask it again from user. Example - To retrieve information you can reuse existing values such as instance-id 
+                from history but for creating new resource you cannot use existing instance-ids. Think thoughtfully to use existing values.
+            - Return the parameters whose values are having invalid format with a Invalid Format message. It should comply with parameter 
+                format value. If it's boolean format then it should have true or false, If int or integer or 
+                number, then it should have numbers only.
+            - If parameter format is not identified then do not validate the input.
+
         The response should be very concise and follow the below points while generating the response
             - Strictly adhere to the this format as response. {json_final_response_pre_command}
-            - In the {json_final_response_pre_command} structure if any of the parameter value is found, then display it
             - JSON, keys and values require double-quotes
             - Do not wrap the json codes in JSON markers
 
@@ -94,7 +101,7 @@ command_pre_service_prompt = f"""
 
         3. If instance-ids value does not exists, the response should be like this = {example_3}
 
-        4. If version value does not have number format, the response should be like this = {example_4}
+        4. If version value does not have number format or incorrect value, the response should be like this = {example_4}
 
         4. If not a required parameter and is optional, then the response should be like this = {example_5}
 

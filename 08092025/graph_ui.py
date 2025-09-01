@@ -20,43 +20,36 @@ def generate_uuid() -> str:
     return str(uuid.uuid4())
 
 def displayMessageOnly(message, agent_name, color):
-    if (agent_name == "Agent22"):
-        print(f"MMSS {message}")
-    inde = 1
     for msg in message:
-        if (agent_name == "Agent22"):
-            print(f"{inde} MMSSGG Inside {msg}")
-            inde = inde+1
         to_display = f"**{agent_name}:** {msg}"
         st.session_state.messages.append(to_display)
-        if (color == "red"):
-            st.markdown(f":red[{to_display}]")
-        elif (color == "blue"):
-            st.markdown(f":blue[{to_display}]")
-        else:
-            st.markdown(to_display)
+        #if (color == "red"):
+        #    st.markdown(f":red[{to_display}]")
+        #elif (color == "blue"):
+        #    st.markdown(f":blue[{to_display}]")
+        #else:
+        #    st.markdown(to_display)
+        st.markdown(to_display)
 
 
 def invokeGraph(graph, state, resume, config, user_input):
+    check_interrupt_in_event = False
     if (resume):
         for event in graph.stream(Command(resume=user_input.lower()), config=config):
             print(f"Main: Interrupt Flow: Event: {event}")
             if "__interrupt__" in event:
-                print("### Main IF, Interrupt")
-                msg = "###Graph interrupted! Awaiting human input."
-                print(msg)
-                messages = readInterruptMessage(config)
-                displayMessageOnly(messages, "Agent1", "red")
-                interruptFlag = True
-                print("BREAK")
-                break
-            else:
-                # let's avoid this
-                print("### Main IF, No Interrupt")
-                messages = readAIMessagesFromConfig(config)
-                displayMessageOnly(messages, "Agent2", "blue")
+                check_interrupt_in_event = True            
+        if check_interrupt_in_event:
+            print("### Main IF, Interrupt")
+            messages = readInterruptMessage(config)
+            print(f"Messages Length :: {len(messages)}")
+            displayMessageOnly(messages, "Agent1", "red")
+        else:
+            # let's avoid this
+            print("### Main IF, No Interrupt")
+            messages = readAIMessagesFromConfig(config)
+            displayMessageOnly(messages, "Agent2", "blue")
     else:
-        check_interrupt_in_event = False
         for event in buildgraph().stream(state, config, stream_mode="updates"):
             print(f"Main: NIFlow: Event: {event}")
             if "__interrupt__" in event:
@@ -161,8 +154,8 @@ def run_chat(thread_id,interruptFlag):
                                 to_proceed = False
                                 msg_list = ["Please provide correct value"]
                                 displayMessageOnly(msg_list, "AgentN", "")
-                        elif "pre_commandexecute_agent" in next_state:
-                            print("OR HERE IT COMES")
+                        #elif "pre_commandexecute_agent" in next_state:
+                        #    print("OR HERE IT COMES")
 
                         if (to_proceed):
                             invokeGraph(buildgraph(), state, True, config, user_input.lower())
@@ -180,6 +173,35 @@ def run_chat(thread_id,interruptFlag):
 
     print(f"{next(number_id)} ----------------------- E ----------------------------")
 
+# Custom CSS to reduce sidebar width
+    st.markdown(
+        """
+       <style>
+       [data-testid="stSidebar"][aria-expanded="true"]{
+           min-width: 70px;
+           max-width: 70px;
+       }
+       """,
+        unsafe_allow_html=True,
+    )   
+
+
+st.logo("image/aws_logo.png", size="medium", link="https://docs.aws.amazon.com/cli/latest/")
+
+# Sidebar content
+with st.sidebar:
+    col1, col2, col3, col4, col5 = st.columns(5) # For 3 images
+    with col1:
+        st.sidebar.image("image/langgraph.png", width=50)
+    with col2:
+        st.sidebar.image("image/python.png", width=50)
+    with col3:
+        st.sidebar.image("image/gemini.png", width=50)
+    with col4:
+        st.sidebar.image("image/chroma.png", width=50)
+    with col5:
+        st.sidebar.image("image/rag.png", width=50)
+
 st.title("AI AWS Assistant")
 if 'messages' not in st.session_state:
     st.session_state.messages = []
@@ -188,7 +210,7 @@ if 'messages' not in st.session_state:
     st.session_state.index_id = 0
     st.interrupt_flag=False
     print(f"THREAD_ID : {st.session_state.thread_id}")
-    st.markdown(":green[Enter 'Old Id: XXXXX' to load previous conversation or proceed with your query]") 
+    st.markdown(":orange[Enter 'Old Id: XXXXX' to load previous conversation or proceed with your query]") 
     st.session_state.messages.append("Enter 'Old Id: XXXXX' to load previous conversation or proceed with your query")
 
 

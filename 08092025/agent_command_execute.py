@@ -12,28 +12,22 @@ def commandexecute_agent(state: AgentState) -> AgentState:
     response_text = "Sorry, I couldn't process your request."
 
     human_messages = []
-
-    # to find all the required parameters
-    prompt = command_pre_service_prompt.replace("#params#", str(user_msg))
-
     # read all the human messages as values will be in human messages only
     #summarized message
     for msg in state["messages"]:
         if isinstance(msg, HumanMessage) and msg not in human_messages:
             human_messages.append(msg.content)
-    
-    print(f"Get the prompt -> {summary_prompt}")
-
     # now we have to summarize the user input
     messages = [
         ("system", summary_prompt),
         ("human", str(human_messages)),
     ]        
     response_text = llm.invoke(messages).content
-    print(f"Commandexecute: Summarized Message: {response_text}")
 
     # add the summarized message as an input to llm
-    prompt = command_pre_service_prompt.replace("#human#", str(response_text))
+    # to find all the required parameters
+    prompt = command_pre_service_prompt.replace("#params#", str(user_msg))
+    prompt = prompt.replace("#human#", str(response_text))
     
     messages = [
         ("system", prompt),
@@ -50,14 +44,11 @@ def commandexecute_agent(state: AgentState) -> AgentState:
 
     if len(response_text) > 0:
         response_messages = []
-        final_response = "Values for the below parameters required to proceed: \n\n"
+        final_response = "Action required: \n\n"
         tmp_response = ""
-        slno = 1
         for response in response_text:
-            tmp_response = tmp_response + f"({slno}) {response}, "
-            print(f">> {slno}. CommandExecute: Iterate {tmp_response}")
-            slno = slno + 1
-        
+            tmp_response = tmp_response + response + "; "
+        tmp_response = tmp_response.strip('; ')
         response_messages.append(AIMessage(content=str(final_response + tmp_response)))
         state["messages"] = response_messages
         state["approval_status"] = "notapproved"
