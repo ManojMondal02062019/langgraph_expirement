@@ -88,6 +88,7 @@ command_pre_service_prompt = f"""
         The response should be very concise and follow the below points while generating the response
             - Strictly adhere to the this format as response. {json_final_response_pre_command}
             - JSON, keys and values require double-quotes
+            - ONLY double quotes
             - Do not wrap the json codes in JSON markers
 
         Examples: the same response format shall be produced for all required parameters and for optional parameters if provided
