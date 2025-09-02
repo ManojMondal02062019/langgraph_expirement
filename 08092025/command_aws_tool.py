@@ -21,7 +21,6 @@ def execute_aws_command_for_config(input: str, config: RunnableConfig):
     """
 
     command_to_run = config.get("configurable", {}).get("command")
-    print(f"TOOL: FINAL COMMAND TO EXECUTE: {command_to_run}")
 
     # now execute the command
     output = get_awscli_output(final_command)
@@ -35,7 +34,6 @@ def check_exact_type(obj):
     if type(obj) is str:
         obj.replace("\n"," ")
         obj.strip()
-    print(f"Inside object type check: {type(obj)}")
     return obj
 
 def get_awscli_output(command):

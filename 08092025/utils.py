@@ -1,4 +1,6 @@
-import json
+import math
+import json 
+import re
 
 def cleanJson(json_content: str):
     if len(json_content) > 0:
@@ -10,7 +12,7 @@ def cleanJson(json_content: str):
 
 def parseJSONForErrorMessages(json_content: str):
     data = json.loads(json_content)
-    print (f"Utils :: {data}")
+    print (f"Utils :: data :: {data}")
     content = []
     aws_keys = []
     aws_values = []
@@ -18,22 +20,38 @@ def parseJSONForErrorMessages(json_content: str):
     incorrect_value = ""
     for item in data:
         # Iterate over each key-value pair in the dictionary
-        if item["value"] is None or len(item["value"]) == 0:
+        if item["value"] is None or bool(re.match(r"<.*?>", item["value"])) or bool(re.match(r"[.*?]", item["value"])) or len(item["value"].strip()) == 0 or "xxxx" in item["value"]:
+            # value does not exists
             missing_value = missing_value + item['name'].split()[0] + ", " 
-        # Iterate over each key-value pair in the dictionary
-        if item["validation_message"] is not None or len(item["validation_message"]) > 0:
-            incorrect_value = item['name'].split()[0] + ", "
-        
-        if item["value"] is not None and item["validation_message"] is not None and item["error_message"] is not None:
-            if (len(item["value"])>0 and len(item["validation_message"])==0 and len(item["error_message"])==0):
-                aws_keys.append(item['name'].split()[0])
-                aws_values.append(item['value'])
+            item["value"]=""
+        else:
+            # value exists
+            # Iterate over each key-value pair in the dictionary
+            if item["validation_message"] is not None and len(item["validation_message"]) > 0:
+                # add a special check for number format,
+                # as the data is enclosed within quotes.
+                if str(item["format"]) == "number":
+                    if not item["value"].isnumeric():
+                        incorrect_value = item['name'].split()[0] + ", "
+                        item["value"]=""
+                    else:
+                        item["validation_message"] = ""
+                else:
+                    incorrect_value = item['name'].split()[0] + ", "
+                    item["value"]=""
+
+        if (len(item["value"]) >0 and len(item["validation_message"])==0 and len(item["error_message"])==0):
+            aws_keys.append(item['name'].split()[0])
+            aws_values.append(item['value'])
 
     if len(missing_value) > 0:
         content.append("Missing Values: " + missing_value.strip(', '))
     if len(incorrect_value) > 0:
         content.append("Invalid Values: " + incorrect_value.strip(', '))
     
+    print(f"Content:: {content}")
+    print(f"Content Keys :: {aws_keys}")
+    print(f"Content Values:: {aws_values}")
     return content,aws_keys,aws_values
 
 def parseJSONForKeysValues(json_content: str):

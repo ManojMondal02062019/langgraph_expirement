@@ -67,7 +67,7 @@ example_3 = {
 example_4 = {
             "name" : "version",
             "value": -1.1,
-            "format": "integer",
+            "format": "number",
             "validation_message": "The version should be a positive number",
             "error_message": "",
             "mandatory": "Yes"

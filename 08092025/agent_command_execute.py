@@ -23,6 +23,7 @@ def commandexecute_agent(state: AgentState) -> AgentState:
         ("human", str(human_messages)),
     ]        
     response_text = llm.invoke(messages).content
+    print(f"Summarized Human Message :: {response_text}")
 
     # add the summarized message as an input to llm
     # to find all the required parameters
@@ -44,11 +45,15 @@ def commandexecute_agent(state: AgentState) -> AgentState:
 
     if len(response_text) > 0:
         response_messages = []
-        final_response = "Action required: \n\n"
+        final_response = "Action required - \n\n"
         tmp_response = ""
         for response in response_text:
             tmp_response = tmp_response + response + "; "
         tmp_response = tmp_response.strip('; ')
+        if len(aws_keys)>0:
+            aws_service_values = {key: value for key, value in zip(aws_keys, aws_values)}
+            tmp_response = tmp_response + "\n\n" + f"Values are: {aws_service_values}"
+        
         response_messages.append(AIMessage(content=str(final_response + tmp_response)))
         state["messages"] = response_messages
         state["approval_status"] = "notapproved"
@@ -70,7 +75,6 @@ def pre_commandexecute_agent(state: AgentState) -> AgentState:
         print("PreCommandExecute, Go to next step")
     else:
         response_text = state["messages"][-1].content
-        print(f"pre_commandexecute_agent: response : {response_text}")
         value = interrupt({
             "text_to_review": response_text
         })

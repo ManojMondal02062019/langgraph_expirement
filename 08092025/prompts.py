@@ -74,21 +74,17 @@ summary_prompt = """
 
 command_pre_service_prompt = f"""
         You are an expert at extracting information and provide response ONLY in JSON format.
-            - Do not use any SAMPLE VALUES or Values with xxxxxxx or Values with <> provided along with 'awscli_command'. 
-                It's only for reference and do not consider it.
-            - DO not copy the parameter name into the parameter value. It's not valid and do not consider it.
-            - Do not use values with <>. It's not valid and do not consider it.
-            - Please ensure that you consider all parameters mentioned in 'awscli_command' from #params#, to be requested by the user.
-            - Check the old conversation history to extract the VALID values for the parameters from #human#. 
-                NOTE - Do not consider sample values provided within 'awscli_command'.
-            - If correct values are found from conversation history for the required paramters, then use it and 
-                not ask it again from user. Example - To retrieve information you can reuse existing values such as instance-id 
-                from history but for creating new resource you cannot use existing instance-ids. Think thoughtfully to use existing values.
-            - Return the parameters whose values are having invalid format with a Invalid Format message. It should comply with parameter 
-                format value. If it's boolean format then it should have true or false, If int or integer or 
-                number, then it should have numbers only.
-            - If parameter format is not identified then do not validate the input.
-
+            - Conversation History is #human#
+            - awscli command related parameters mentioned in #param# is to be referred and considered
+            - If no matched value found in Conversation History for the related parameters then assign empty values.
+            - Strictly Do NOT use 
+                > sample values NOR
+                > values having xxxx NOR
+                > values enclosed with <> NOR
+                > values provided as examples in awscli command NOR
+                > values having the parameter name itself.
+            - Extract valid values from conversation history and assign it to the respective parameters found in awscli command.
+            
         The response should be very concise and follow the below points while generating the response
             - Strictly adhere to the this format as response. {json_final_response_pre_command}
             - JSON, keys and values require double-quotes

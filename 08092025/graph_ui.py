@@ -97,7 +97,7 @@ def displayMessageFromObject(config, event, state):
         print("No config, no event")        
 
 
-def run_chat(thread_id,interruptFlag):
+def run_chat(thread_id):
     print(f"----------------------- S ----------------------------")
     state = {}
     state["messages"] = []
@@ -208,10 +208,9 @@ if 'messages' not in st.session_state:
     st.session_state.history = {}
     st.session_state.thread_id = generate_uuid()
     st.session_state.index_id = 0
-    st.interrupt_flag=False
     print(f"THREAD_ID : {st.session_state.thread_id}")
     st.markdown(":orange[Enter 'Old Id: XXXXX' to load previous conversation or proceed with your query]") 
     st.session_state.messages.append("Enter 'Old Id: XXXXX' to load previous conversation or proceed with your query")
 
 
-run_chat(st.session_state.thread_id, st.interrupt_flag)
+run_chat(st.session_state.thread_id)

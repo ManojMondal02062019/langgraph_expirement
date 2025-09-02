@@ -19,8 +19,6 @@ def runcommand_agent(state: AgentState) -> AgentState:
     #)
 
     my_config={"configurable": config_values}
-
-    print("Invoke Tool...................")
     output = execute_aws_command.invoke("Run this command",config=my_config)
     
     #TODO: if output is error, then we might have to take user input
@@ -29,6 +27,4 @@ def runcommand_agent(state: AgentState) -> AgentState:
     response_messages.append(AIMessage(content=str(output)))
     
     state["messages"] = response_messages
-    state["interrupt_flag"] = False
-
     return state

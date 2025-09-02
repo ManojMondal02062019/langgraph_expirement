@@ -172,15 +172,12 @@ def human_ask_node(state: AgentState) -> Command[Literal["commandexecute_agent"]
     print(f"GraphBuild: Received human input: {value}")
     # When resumed, this will contain the human's input
     if value.lower() == "approve":
-        state["interrupt_flag"] = False
         return Command(goto="commandexecute_agent")
     elif value.lower() == "modify":
-        state["interrupt_flag"] = False
         return Command(goto="identifyservice_agent")    
     elif value.lower() == "rejected":
         return Command(goto=END)
     else:
-        state["interrupt_flag"] = True
         pass
 
 def chkHumanLoop(config, user_input):
