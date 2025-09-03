@@ -53,8 +53,8 @@ def parseJSONForErrorMessages(json_content: str):
         content.append("Invalid Values: " + incorrect_value.strip(', '))
     
     print(f"Content:: {content}")
-    print(f"Content Keys :: {aws_keys}")
-    print(f"Content Values:: {aws_values}")
+    print(f"AWS Keys :: {aws_keys}")
+    print(f"AWS Values:: {aws_values}")
     return content,aws_keys,aws_values
 
 def parseJSONForKeysValues(json_content: str):

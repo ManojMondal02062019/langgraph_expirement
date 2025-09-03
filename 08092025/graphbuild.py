@@ -3,7 +3,7 @@ from agent_state import AgentState
 from agent_chat import chat_agent
 from agent_identify_service import identifyservice_agent
 from agent_command_execute import commandexecute_agent, pre_commandexecute_agent
-from agent_run_command import runcommand_agent
+from agent_run_command import runcommand_agent, post_commandexecute_agent
 from agent_intent import intent_agent
 from router_agent import route
 from llm_model import llm, memory
@@ -49,16 +49,11 @@ def buildgraph():
     builder.add_node("intent_agent", intent_agent)
     builder.add_node("identifyservice_agent", identifyservice_agent)
     builder.add_node("commandexecute_agent", commandexecute_agent)
-    #builder.add_node("agent_run_command",runcommand_agent)
-    #builder.add_node("tool_invocation_node", tool_node)
     builder.add_node("human_review_node", human_node)
     builder.add_node("pre_commandexecute_agent",pre_commandexecute_agent)
     builder.add_node("agent_run_command",runcommand_agent)
-    #builder.add_node("review_pre_condition", review_pre_condition_agent)
-    #builder.add_node("proccedwithexecution", procced_with_execution_agent)
-    #builder.add_node("human_ask_parameter", human_ask_node)
+    builder.add_node("post_commandexecute_agent",post_commandexecute_agent)
     builder.add_node("route", lambda x: x)
-
     
     builder.set_entry_point("route")
     # commented on 08162025
@@ -70,47 +65,21 @@ def buildgraph():
     builder.add_edge("chat_agent", END)
     builder.add_edge("intent_agent", "identifyservice_agent")
     builder.add_edge("identifyservice_agent", "human_review_node")
-    #builder.add_edge("human_review_node","commandexecute_agent")
     builder.add_edge("commandexecute_agent","pre_commandexecute_agent")
     # Define conditional edge based on approval status
     builder.add_conditional_edges(
         source="pre_commandexecute_agent",
-        path=lambda state: "commandexecute_agent" if state["approval_status"] != "approve" else "agent_run_command",
+        path=lambda state: "commandexecute_agent" if state["approval_status"] != "approve" else "agent_run_command"
     )
-    #builder.add_conditional_edges(
-    #    "pre_commandexecute_agent",
-    #    lambda state: state["approval_status"],{
-    #        "commandexecute_agent": "approve",
-    #        "pre_commandexecute_agent" : "notapproved"
-    #    })
-    builder.add_edge("agent_run_command", END)
-    #builder.add_conditional_edges(
-    #    "agent_run_command",
-    #    should_continue,
-    #    {"tools": "tool_invocation_node", END: END}
-    #)    
-    
-    #builder.add_conditional_edges(
-    #    "review_pre_condition",
-    #    lambda state: "proccedwithexecution" if state["approved"] else "commandexecute_agent"
-    #)
-    #builder.add_edge("proccedwithexecution", END)
-    # Conditional routing based on human review
-    #builder.add_conditional_edges(
-    #    "human_review_node",
-    #    human_approval,
-    #    {
-    #        "approved": "commandexecute_agent",
-    #        "modify": "identifyservice_agent", # Loop back for invalid input
-    #    }
-    #)
-    #builder.add_edge("commandexecute_agent", END)
+    builder.add_edge("agent_run_command", "post_commandexecute_agent")
+    builder.add_conditional_edges(
+        source="post_commandexecute_agent",
+        path=lambda state: "agent_run_command" if state["aws_command_status"] == "failed" else END
+    )
+    builder.add_edge("post_commandexecute_agent", END)
 
     try:
-
-        #graph = builder.compile(checkpointer=memory, interrupt_after=["commandexecute_agent"])     
         graph = builder.compile(checkpointer=memory)     
-
     except Exception as e:
         raise RuntimeError(f"Failed to compile LangGraph: {e}")
     

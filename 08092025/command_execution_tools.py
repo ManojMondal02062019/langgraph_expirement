@@ -52,17 +52,28 @@ def execute_aws_command(input: str, config: RunnableConfig):
     return str(output)
 
 def get_awscli_output(command):
+    output_s = ""
+    output_e = ""
     try:
         result = subprocess.run(command, capture_output=True, text=True, check=True)
-        output = json.loads(result.stdout)
+        output_s = json.loads(result.stdout)
         print(f"get_awscli_output :: output : {output}")
-        return output
     except subprocess.CalledProcessError as e:
         print(f"Error AWS Command: {e}")
-        return e.stderr
+        output_e = str(e.stderr)
     except json.JSONDecodeError as e:
         print(f"Error AWS Command JSON: {e}")
-        return (f"Error parsing JSON output: {e}")    
+        output_e = str(e)
+    
+    if (len(output_e) > 0):
+        #error or exception
+        if (len(output_s) > 0):
+            return f"Error Code: {output_e}, Error Message: {output_s}"
+        else:
+            return f"Error Code: {output_e}"
+    else:
+        #success
+        return output_s
 
 
 def aws_config(aws_session_token, duration_s):

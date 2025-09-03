@@ -1,4 +1,4 @@
-from jsonresponse import json_response_format_response, json_response_parameter_response, example_1, example_2, example_3, example_4, example_5, json_final_response_pre_command
+from jsonresponse import *
 
 intent_prompt = """
     You are an Assistant in identifying the intent of the user request. 
@@ -40,6 +40,7 @@ identify_service_prompt_1 = f"""
     - Read the Prerequisites, Steps to generate response.
     - Generate response as AWSCLI CODE to execute and NOT as AWS Management Console.
     - Provide the actual command to be executed in "awscli_commands" in the {json_response_format_response} response.
+    - PLEASE provide only one command in "awscli_commands". DO NOT provide multiple commands.
 
     The response should be very concise and should be answered in {json_response_format_response} format. 
     We don't want markdown in our output
@@ -113,4 +114,49 @@ command_join_validation_error_prompt = f"""
 command_join_validation_error_prompt_worked_1 = f"""
     Write a concise summary from the following message - ##.
     The response should be very concise and ONLY return the parameters (as comma seperated).
+"""
+
+command_post_service_prompt = f"""
+    You are an expert at analyzing the root cause issue from the request.
+    You are required to perform the following for proviing the responone - 
+    > Identify the parameters from the request which caused the error.
+    > Map the parameter with #aws_values# and get the name of the parameter.
+    > Check the existence of the parameter in awscli command from #aws_command#
+
+    The response should be very concise and follow the below points while generating the response
+        - Strictly adhere to the this format as response. {example_6}
+        - JSON, keys and values require double-quotes
+        - ONLY double quotes
+        - Do not wrap the json codes in JSON markers
+
+"""
+
+override_aws_values_prompt = f"""
+
+    You are an expert at analyzing the existing set of parameters in #aws_service_values# and then 
+    replace the value of existing parameter with the value received from user. Before replacing do verify the 
+    parameter name whose value is to be replaced.
+    The state variable to be modified is aws_service_values.
+    Follow the below steps to generate the response
+        > The response should be a python dict with key as parameter name.
+        > You should replace the value if parameter name already exists.
+        > Restore all other existing parameter name and its values.
+        > If parameter name does not exists then add the parameter name and its value.
+    Example - 
+        Scenario 1 - Replacing existing value
+        1) If existing parameters are aws_service_values = {example_7}
+        2) New value is i-000760dffa1b3b4a8
+        3) Response should be {example_8}
+        4) The old value i-000760dffa1b3b4a9 is replaced with i-000760dffa1b3b4a8 for the same parameter instance-ids
+        5) The remaining values are restored.
+
+        Scenario 2 - Parameter not found, then we need to add it
+        1) If existing parameters are aws_service_values = {example_8}
+        2) New value is ami-id is ami-000760dffa1
+        3) Response should be {example_9}
+
+        - JSON, keys and values will follow quotes as provided in example.
+        - Do not wrap the json codes in JSON markers
+        - Do not add Python code or markers in response
+
 """
