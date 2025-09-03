@@ -155,6 +155,8 @@ override_aws_values_prompt = f"""
         2) New value is ami-id is ami-000760dffa1
         3) Response should be {example_9}
 
+        - JSON, keys and values require double-quotes
+        - ONLY double quotes        
         - JSON, keys and values will follow quotes as provided in example.
         - Do not wrap the json codes in JSON markers
         - Do not add Python code or markers in response

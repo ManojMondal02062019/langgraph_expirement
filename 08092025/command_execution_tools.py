@@ -28,6 +28,7 @@ def execute_aws_command(input: str, config: RunnableConfig):
     print(f"TOOL: Service Command: {str(service_c)}")
     service_d = aws_service_values
     print(f"TOOL: Service Params: {str(service_d)}")
+    print(f"TOOL: Service Params TYPE: {type(aws_service_values)}")
     params = ""
     for key, value in service_d.items():
         params= f"{params} {key} {value}"

@@ -87,6 +87,6 @@ example_6 = {
             "existing_value": "i-1223"
         }
 
-example_7 = {'--instance-ids': 'i-000760dffa1b3b4a9', '--dry-run': 'False' }
-example_8 = {'--instance-ids': 'i-000760dffa1b3b4a8', '--dry-run':'False'}
-example_9 = {'--instance-ids': 'i-000760dffa1b3b4a8', '--dry-run':'False', '--ami-id': 'ami-000760dffa1'}
+example_7 = {"--instance-ids": "i-000760dffa1b3b4a9", "--dry-run": "False" }
+example_8 = {"--instance-ids": "i-000760dffa1b3b4a8", "--dry-run":"False"}
+example_9 = {"--instance-ids": "i-000760dffa1b3b4a8", "--dry-run":"False", "--ami-id": "ami-000760dffa1"}

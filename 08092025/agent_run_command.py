@@ -6,7 +6,8 @@ from utils import cleanJson, parseJSONForErrorMessages
 from langgraph.types import interrupt, Command
 from command_execution_tools import execute_aws_command
 from langchain_core.runnables.config import RunnableConfig
-
+import json
+import ast
 
 def runcommand_agent(state: AgentState) -> AgentState:
     print(f"RUN - RunCommand: State Message: {str(state)}")
@@ -65,10 +66,14 @@ def post_commandexecute_agent(state: AgentState) -> AgentState:
             ("human", new_params),
         ]
         response_text = llm.invoke(messages).content
-        response_text = cleanJson(response_text)
-
+        response_text = cleanJson(response_text.strip())
+        # convert it into dict       
+        try:
+            response_text = json.loads(response_text)
+        except Exception as e:
+            print(e)
         print(f"PostCommandExecute, User Response received To check Parameter Key and Value: {response_text}")
-
+        
         human_message = []
         human_message.append(HumanMessage(content=value))
         state["messages"] = human_message
