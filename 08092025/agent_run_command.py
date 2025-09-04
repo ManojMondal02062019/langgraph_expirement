@@ -33,7 +33,8 @@ def post_commandexecute_agent(state: AgentState) -> AgentState:
     print(f"PostCommandExecute, state: {state}")
     print(f"PostCommandExecute, Command Output: {state["aws_command_output"]}")
     if "error" not in (state["aws_command_output"]).lower():
-        state["messages"].append(AIMessage(content="Thankyou. You can start again."))
+        msg_content = state["aws_command_output"] + "\n\nThankyou. You can start again with a new search."
+        state["messages"].append(AIMessage(content=msg_content))
         state["aws_command_status"] = "success"
         print("PostCommandExecute, We are good to end the workflow.")
     else:
@@ -57,6 +58,12 @@ def post_commandexecute_agent(state: AgentState) -> AgentState:
             "text_to_review": f"{aws_command_output}.  {response_text}  Please fix the issue and try again or type in 'exit' to search new"
         })
         print(f"PostCommandExecute, User Response received: {value}")
+        if value.lower() == "exit" or value.lower() == "bye":
+            ai_message = []
+            ai_message.append(AIMessage(content="Thankyou. You can perform search again"))
+            state["messages"] = ai_message
+            state["aws_command_status"] = ""
+            return state
         print(f"PostCommandExecute, Old Response : {response_text}")
 
         prompt = override_aws_values_prompt.replace("#aws_service_values#", str(state["aws_service_values"]))
@@ -67,11 +74,13 @@ def post_commandexecute_agent(state: AgentState) -> AgentState:
         ]
         response_text = llm.invoke(messages).content
         response_text = cleanJson(response_text.strip())
-        # convert it into dict       
-        try:
-            response_text = json.loads(response_text)
-        except Exception as e:
-            print(e)
+        # convert it into dict
+        if isinstance(response_text, str):      
+            try:
+                response_text = json.loads(response_text)
+            except Exception as e:
+                print(e)
+        
         print(f"PostCommandExecute, User Response received To check Parameter Key and Value: {response_text}")
         
         human_message = []

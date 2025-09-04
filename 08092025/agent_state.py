@@ -23,3 +23,4 @@ class AgentState(TypedDict):
     aws_command_status: str
     aws_service_values: Optional[dict]
     approval_status: str
+    llm_mode: str

@@ -1,5 +1,5 @@
 from agent_state import AgentState
-from llm_model import llm, agent
+from llm_model import *
 from prompts import command_pre_service_prompt, command_join_validation_error_prompt, summary_prompt
 from langchain_core.messages import AIMessage, HumanMessage
 from utils import cleanJson, parseJSONForErrorMessages

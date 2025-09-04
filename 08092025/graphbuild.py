@@ -14,6 +14,7 @@ from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.messages.utils import filter_messages
 from langgraph.prebuilt import ToolNode
 from agent_run_command import runcommand_agent
+from agent_cleanup import cleanupcommand_agent
 
 #from langchain_core.runnables.human_input import HumanInput
 
@@ -53,6 +54,7 @@ def buildgraph():
     builder.add_node("pre_commandexecute_agent",pre_commandexecute_agent)
     builder.add_node("agent_run_command",runcommand_agent)
     builder.add_node("post_commandexecute_agent",post_commandexecute_agent)
+    builder.add_node("cleanupcommand_agent",cleanupcommand_agent)
     builder.add_node("route", lambda x: x)
     
     builder.set_entry_point("route")
@@ -77,6 +79,8 @@ def buildgraph():
         path=lambda state: "agent_run_command" if state["aws_command_status"] == "failed" else END
     )
     builder.add_edge("post_commandexecute_agent", END)
+    #builder.add_edge("cleanupcommand_agent", END)
+    #builder.add_edge("human_node", END)
 
     try:
         graph = builder.compile(checkpointer=memory)     
@@ -92,7 +96,7 @@ def buildgraph():
 # https://langchain-ai.github.io/langgraph/how-tos/human_in_the_loop/add-human-in-the-loop/#validate-human-input
 def human_node(state: AgentState) -> Command[Literal["commandexecute_agent", "identifyservice_agent", END]]:
     print(f"GraphBuild: human_node, State : {state}")
-    question_msg = "Please review the result and corresponding actions.\n\nUse OK or 1 (to continue), Edit or 2 (modify query), Exit or 3 (begin new) to proceed."
+    question_msg = "Please review the result and corresponding actions.\n\nUse <OK> or 1 (to continue), <Search> or 2 (search again), <Exit> or 3 (begin new) to proceed."
     user_msg = state["messages"][-1].content
     user_msg = f"{user_msg}\n\n{question_msg}"
     value = interrupt({
@@ -102,13 +106,15 @@ def human_node(state: AgentState) -> Command[Literal["commandexecute_agent", "id
     print(f"GraphBuild: human_node, value is ------ {value}")
     new_ai_message = state["messages"]
     aws_service_attr = state["aws_service_attr"]
+    llm_mode = None
     if value.lower() == "ok" or value.lower() == "1":
         new_ai_message.append(AIMessage(content="Processing the request..."))
         goto="commandexecute_agent"
-    elif value.lower() == "edit" or value.lower() == "2":
-        new_ai_message.append(AIMessage(content="Modify your query..."))
+    elif value.lower() == "search" or value.lower() == "2":
+        llm_mode = "moderate"
+        new_ai_message.append(AIMessage(content="Search again..."))
         aws_service_attr = None
-        goto="END"
+        goto="identifyservice_agent"
     elif value.lower() == "exit" or value.lower() == "3":
         new_ai_message.append(AIMessage(content="Thankyou. You can again start a new search.."))        
         goto="END"
@@ -120,7 +126,7 @@ def human_node(state: AgentState) -> Command[Literal["commandexecute_agent", "id
 
     return Command(
         # this is the state update
-        update={"messages": new_ai_message, "aws_service_attr": aws_service_attr},
+        update={"messages": new_ai_message, "aws_service_attr": aws_service_attr, "llm_mode": llm_mode},
         # this is a replacement for an edge
         goto=goto,
     )

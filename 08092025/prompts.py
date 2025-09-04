@@ -69,22 +69,26 @@ router_prompt = """
 summary_prompt = """
 
     Summarize chat from history. Remove duplicates, preserve messages having values.
-    Consider the latest values for the variables or parameters. Discard the old values.
+    Consider the latest values for the variables or parameters. Discard the invalid values which didn't worked.
 
 """    
 
 command_pre_service_prompt = f"""
-        You are an expert at extracting information and provide response ONLY in JSON format.
-            - Conversation History is #human#
-            - awscli command related parameters mentioned in #param# is to be referred and considered
-            - If no matched value found in Conversation History for the related parameters then assign empty values.
-            - Strictly Do NOT use 
-                > sample values NOR
-                > values having xxxx NOR
-                > values enclosed with <> NOR
-                > values provided as examples in awscli command NOR
-                > values having the parameter name itself.
-            - Extract valid values from conversation history and assign it to the respective parameters found in awscli command.
+        You are an expert at extracting information from #params# and try to fill in the values 
+        following below business logic for relevant parameters that are to be used in awscli command.
+            - If parameter value is "skip" or "na" or "ignore", then do not validate it as User wants to ignore these parameters.
+            - Please respect skipped parameters provided by the user and use the value skip for those parameters. DO Not validate it.
+            - In case there are parameters which user do not want to skip or ignore then follow below
+                - Conversation History is #human#
+                - awscli command related parameters mentioned in #param# is to be referred and considered
+                - If no matched value found in Conversation History for the related parameters then assign empty values.
+                - Strictly Do NOT use 
+                    > sample values NOR
+                    > values having xxxx NOR
+                    > values enclosed with <> NOR
+                    > values provided as examples in awscli command NOR
+                    > values having the parameter name itself.
+                - Extract valid values from conversation history and assign it to the respective parameters found in awscli command.
             
         The response should be very concise and follow the below points while generating the response
             - Strictly adhere to the this format as response. {json_final_response_pre_command}
@@ -101,7 +105,10 @@ command_pre_service_prompt = f"""
 
         4. If version value does not have number format or incorrect value, the response should be like this = {example_4}
 
-        4. If not a required parameter and is optional, then the response should be like this = {example_5}
+        5. If not a required parameter and is optional, then the response should be like this = {example_5}
+
+        6. If User wants to skip or na or ignore all parameters or some parameters, then DO NOT validate it. 
+          Populate the values of those parmaeters as {example_ex_1}
 
     """
 

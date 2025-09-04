@@ -7,7 +7,10 @@ from langgraph.checkpoint.memory import InMemorySaver
 
 gem_model_name="gemini-pro"
 
-llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash")
+llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash", temperature=0.2)
+llm_chat = ChatGoogleGenerativeAI(model="gemini-2.0-flash", temperature=0.1)
+llm_balanced = ChatGoogleGenerativeAI(model="gemini-2.0-flash", temperature=0.4)
+llm_enhanced = ChatGoogleGenerativeAI(model="gemini-2.0-flash", temperature=0.6)
 
 #llm_with_tools = llm.bind_tools([executeAWSCommandTool])
 

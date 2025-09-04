@@ -23,11 +23,18 @@ def parseJSONForErrorMessages(json_content: str):
     incorrect_value = ""
     for item in data:
         # Iterate over each key-value pair in the dictionary
-        if item['value'] is None or bool(re.match(r"<.*?>", item['value'])) or bool(re.match(r"[.*?]", item['value'])) or len(item['value'].strip()) == 0 or "xxxx" in item['value']:
+        if item['value'] is None or bool(re.match(r"<.*?>", item['value'])) or \
+            bool(re.match(r"[.*?]", item['value'])) or len(item['value'].strip()) == 0 or \
+            "xxxx" in item['value']:
             # value does not exists
             missing_value = missing_value + item['name'].split()[0] + ", " 
             item['value']=""
         else:
+            if item['value'].lower() == "skip" or item['value'].lower() == "ignore" or item['value'].lower() == "na" :
+                item['validation_message'] = ""
+                item['error_message']= ""
+                item['value']= "skip"
+
             # value exists
             # Iterate over each key-value pair in the dictionary
             if item['validation_message'] is not None and len(item['validation_message']) > 0:

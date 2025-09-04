@@ -101,7 +101,7 @@ def run_chat(thread_id):
     print(f"----------------------- S ----------------------------")
     state = {}
     state["messages"] = []
-    approved_values = ["ok","edit","exit", "1", "2", "3"]
+    approved_values = ["ok","search","exit", "1", "2", "3"]
     config = {
         "configurable": {
             "thread_id": thread_id
@@ -117,12 +117,22 @@ def run_chat(thread_id):
         for message in st.session_state.messages:
             st.markdown(message) 
 
+        chkInterrupt, next_state = checkInterrupts(config)
+        to_proceed = False
+
         if user_input.lower() in ["exit", "quit", "bye"]:
-            save_checkpoint(thread_id, st.session_state.history)
-            st.markdown(f"\nConversation Saved. Resume using ID: {thread_id}. Bye until then")
-            st.markdown("---")
-            quit()
+            print (f"Inside exit loop, check Interrupt size : {len(chkInterrupt)}")
+            if len(chkInterrupt)>0:
+                to_proceed = True
+            else:
+                save_checkpoint(thread_id, st.session_state.history)
+                st.markdown(f"\nConversation Saved. Resume using ID: {thread_id}. Bye until then")
+                st.markdown("---")
+                to_proceed = False
         else:
+            to_proceed = True
+            
+        if to_proceed:
             with st.spinner("Processing..."):   
                 if user_input.lower().__contains__("old id"):
                     extract_id = user_input.split(":")
@@ -141,7 +151,6 @@ def run_chat(thread_id):
                         st.markdown(human_messages[num])
                         st.markdown(ai_messages[num])
                 else:
-                    chkInterrupt, next_state = checkInterrupts(config)
                     print (f"Main Run: Check interruptFlag : {chkInterrupt}")
                     print (f"Main Run: Check next_state : {next_state}")
                     if (len(chkInterrupt)>0):
