@@ -5,6 +5,8 @@ from langchain_core.agents import AgentAction
 from aws_service_attributes import AWSServiceAttributes
 import operator
 
+#https://github.com/langchain-ai/langgraph/discussions/2321 - To cap messages
+
 # This shared GraphState ensures that every node can read/write from the same context.
 class AgentState(TypedDict):
     messages: Annotated[Sequence[BaseMessage], operator.add]
@@ -24,3 +26,4 @@ class AgentState(TypedDict):
     aws_service_values: Optional[dict]
     approval_status: str
     llm_mode: str
+

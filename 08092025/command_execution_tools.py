@@ -26,27 +26,18 @@ def execute_aws_command(input: str, config: RunnableConfig):
     # construct the command to be executed
     service_c = aws_service_attr
     print(f"TOOL: Service Command: {str(service_c)}")
-    service_d = aws_service_values
-    print(f"TOOL: Service Params: {str(service_d)}")
+    service_v = aws_service_values
+    print(f"TOOL: Service Params: {str(service_v)}")
     print(f"TOOL: Service Params TYPE: {type(aws_service_values)}")
     params = ""
-    for key, value in service_d.items():
-        params= f"{params} {key} {value}"
+    for key, value in service_v.items():
+        if value != "skip":
+            params= f"{params} {key} {value}"
+    #final_command = f"aws {service_c['service_name']} {service_c['command']} {params} --max-items 5"
     final_command = f"aws {service_c['service_name']} {service_c['command']} {params}"
 
     print(f"TOOL: FINAL COMMAND TO EXECUTE: {final_command}")
-    #if state["session_id"] is None or len(state["session_id"]) == 0:
-    # get the session_id
-    #duration_seconds = 900
-    #get_session_command = ["aws", "sts", "get-session-token", "--duration-seconds", str(duration_seconds)]
-    #aws_session_value = get_awscli_output(get_session_command)
-    #aws_session_token = aws_session_value['SessionToken']
-    #print(f"Session Token ::::: {aws_session_value}")
-    
-    # now execute the command
     output = get_awscli_output(final_command)
-    output = output.replace("\n"," ")
-    output = output.strip()
     print(f"============== Final Output ========================")
     print(output)
     print(f"============== END Final Output ========================")
@@ -56,9 +47,11 @@ def get_awscli_output(command):
     output_s = ""
     output_e = ""
     try:
-        result = subprocess.run(command, capture_output=True, text=True, check=True)
+        result = subprocess.run(command, capture_output=True, text=True, timeout=15, check=True)
         output_s = json.loads(result.stdout)
-        print(f"get_awscli_output :: output : {output}")
+        print(f"get_awscli_output :: output : {output_s}")
+    except subprocess.TimeoutExpired:
+        output_e = "Timeout of 10 seconds expired."
     except subprocess.CalledProcessError as e:
         print(f"Error AWS Command: {e}")
         output_e = str(e.stderr)
@@ -103,4 +96,15 @@ if __name__ == "__main__":
     # This block ensures that main() is called only when the script is run directly.
     aws_session_token=None
     aws_session_token = aws_config(aws_session_token,900)
+
+    #if state["session_id"] is None or len(state["session_id"]) == 0:
+    # get the session_id
+    #duration_seconds = 900
+    #get_session_command = ["aws", "sts", "get-session-token", "--duration-seconds", str(duration_seconds)]
+    #aws_session_value = get_awscli_output(get_session_command)
+    #aws_session_token = aws_session_value['SessionToken']
+    #print(f"Session Token ::::: {aws_session_value}")
+    
+    # now execute the command
+
 '''

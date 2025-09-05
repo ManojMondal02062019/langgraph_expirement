@@ -15,6 +15,7 @@ from langchain_core.messages.utils import filter_messages
 from langgraph.prebuilt import ToolNode
 from agent_run_command import runcommand_agent
 from agent_cleanup import cleanupcommand_agent
+from langchain_core.load import dumps, loads
 
 #from langchain_core.runnables.human_input import HumanInput
 
@@ -286,3 +287,53 @@ def trim_messages_node(state: AgentState):
         print(f"Trimmed State Messages")
         return {"messages": messages[-3:]}
     return {}
+
+# Save all the chat history to save it in a file
+def get_serialize_state_snapshot_1(config):
+    # Retrieve the state history from your graph
+    messages  = buildgraph().get_state_history(config)
+    print(f"Save History: {messages }")
+    # Convert the list of StateSnapshot objects to a serializable format
+    # We'll convert each StateSnapshot to a dictionary.
+    #serializable_history = []
+    #for snapshot in state_history:
+    #    serializable_history.append({
+    #        "values": snapshot.values,
+    #        "next": list(snapshot.next),
+    #        "config": snapshot.config,
+    #        "metadata": snapshot.metadata,
+    #        "created_at": snapshot.created_at,
+    #        "parent_config": snapshot.parent_config,
+    #    })
+    # Convert messages to a serializable format
+    serializable_messages = []
+    for message in messages:
+        if isinstance(message, HumanMessage):
+            serializable_messages.append({"type": "human", "content": message.content})
+        elif isinstance(message, AIMessage):
+            serializable_messages.append({"type": "ai", "content": message.content})
+            # Add similar handling for AIMessage, SystemMessage, etc., if present
+        else:
+            serializable_messages.append(str(message)) # Fallback for other non-serializable types
+
+    print(f"Return Seriziable_history....")
+    return serializable_messages
+
+# Save all the chat history to save it in a file
+def get_serialize_state_snapshot(config):
+    # Retrieve the state history from your graph
+    messages  = buildgraph().get_state_history(config)
+    print(f"Save History: {messages }")
+    serialized_history = dumps(messages)
+
+    print(f"Return Seriziable_history....")
+    return serialized_history    
+
+# Set all the chat history to config
+def set_serialize_state_snapshot(loaded_state_data, config):
+    # Initialize a new run with the loaded state
+    # The exact way to initialize depends on your graph's state definition
+    # If your state is a TypedDict, you can directly pass the loaded dictionary
+    result = buildgraph().invoke(loaded_state_data, config=config)
+    print(f"Result Loaded Data :: {result}")
+    return result
